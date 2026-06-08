@@ -1,0 +1,65 @@
+# ──────────────────────────────────────────────────────────────────────────
+# SmartPay Gateway — PRODUCTION stack
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Two public domains, fronted by CloudPanel/Nginx (TLS terminated there):
+#   pay.lanari.rw      -> frontend container  (127.0.0.1:${WEB_PORT})
+#   api-pay.lanari.rw  -> backend container   (127.0.0.1:${API_PORT})
+#
+# Both containers bind to localhost only; CloudPanel reverse-proxies each
+# vhost to the matching port. Postgres persists via a named volume.
+# ──────────────────────────────────────────────────────────────────────────
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      target: production
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://pay.lanari.rw}
+    ports:
+      - "127.0.0.1:${API_PORT:-4000}:4000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api-pay.lanari.rw/api}
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: production
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+
+volumes:
+  postgres_data:

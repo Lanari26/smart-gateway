@@ -1,0 +1,30 @@
+/**
+ * Application error with an HTTP status. Throw these from services/controllers;
+ * the error middleware turns them into clean JSON responses.
+ */
+export class HttpError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly details?: unknown,
+  ) {
+    super(message);
+    this.name = 'HttpError';
+  }
+
+  static badRequest(message = 'Bad request', details?: unknown) {
+    return new HttpError(400, message, details);
+  }
+  static unauthorized(message = 'Unauthorized') {
+    return new HttpError(401, message);
+  }
+  static forbidden(message = 'Forbidden') {
+    return new HttpError(403, message);
+  }
+  static notFound(message = 'Not found') {
+    return new HttpError(404, message);
+  }
+  static conflict(message = 'Conflict') {
+    return new HttpError(409, message);
+  }
+}

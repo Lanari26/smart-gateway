@@ -1,0 +1,146 @@
+// SmartPay Gateway — data model
+// Backed by PostgreSQL. Generated client used across the backend modules.
+
+generator client {
+  provider      = "prisma-client-js"
+  // native = local dev; linux-musl-openssl-3.0.x = node:20-alpine containers.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MERCHANT
+  ADMIN
+}
+
+enum TransactionStatus {
+  PAID
+  PENDING
+  FAILED
+}
+
+enum PlanCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PENDING
+  CANCELLED
+}
+
+enum ApiKeyType {
+  PUBLIC
+  SECRET
+}
+
+enum InvoiceStatus {
+  PAID
+  PENDING
+  OVERDUE
+}
+
+model Merchant {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  businessName String?
+  phone        String?
+  role         Role     @default(MERCHANT)
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  apiKeys       ApiKey[]
+
+  @@index([role])
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid()) // serves as the JWT jti
+  merchant   Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  merchantId String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([merchantId])
+}
+
+model Transaction {
+  id            String            @id @default(cuid())
+  reference     String            @unique // e.g. tx_8f9e1a
+  customerName  String
+  customerEmail String
+  amount        Float
+  currency      String            @default("USD")
+  method        String
+  status        TransactionStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+
+  @@index([status])
+}
+
+model Plan {
+  id          String    @id @default(cuid())
+  name        String
+  price       Float
+  cycle       PlanCycle @default(MONTHLY)
+  subscribers Int       @default(0)
+  description String
+  isPopular   Boolean   @default(false)
+  isScalable  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  name        String
+  email       String
+  planName    String
+  status      SubscriptionStatus @default(ACTIVE)
+  nextBilling String?
+  amount      Float              @default(0)
+  createdAt   DateTime           @default(now())
+
+  @@index([status])
+}
+
+model ApiKey {
+  id         String     @id @default(cuid())
+  label      String
+  type       ApiKeyType @default(PUBLIC)
+  token      String     @unique
+  merchant   Merchant?  @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+  merchantId String?
+  createdAt  DateTime   @default(now())
+
+  @@index([merchantId])
+}
+
+model WhitelistedIp {
+  id        String   @id @default(cuid())
+  ip        String
+  label     String
+  createdAt DateTime @default(now())
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  number      String        @unique // e.g. INV-2026-004
+  clientName  String
+  clientEmail String
+  amount      Float
+  issueDate   String
+  status      InvoiceStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+
+  @@index([status])
+}
