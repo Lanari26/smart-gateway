@@ -1,0 +1,70 @@
+name: Deploy Backend
+
+# Rebuilds & restarts ONLY the backend (api-pay.lanari.rw) on the Contabo
+# server, and only when backend code (or the compose file) changes. Frontend
+# pushes are handled by deploy-frontend.yml. The server .env is never touched.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+# Serialise with the frontend workflow so concurrent rsyncs never race.
+concurrency:
+  group: smartpay-deploy
+  cancel-in-progress: false
+
+env:
+  DEPLOY_HOST: 176.126.87.142
+  DEPLOY_USER: root
+  DEPLOY_PATH: /opt/smartpay-gateway
+  SERVICE: backend
+
+jobs:
+  deploy:
+    name: Build & deploy backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        # DEPLOY_SSH_KEY = base64 of the ed25519 private key (single line).
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync repo to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
+            --exclude ".git" \
+            --exclude "node_modules" \
+            --exclude "dist" \
+            --exclude ".env" \
+            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Rebuild & restart backend
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' SERVICE='$SERVICE' bash -s" <<'EOSSH'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          docker compose -f docker-compose.prod.yml up -d --build "$SERVICE"
+          docker image prune -f
+          # Wait for the API to report healthy on its local port.
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/api/health >/dev/null 2>&1; then
+              echo "✅ API healthy"; break
+            fi
+            echo "waiting for API... ($i)"; sleep 3
+          done
+          EOSSH

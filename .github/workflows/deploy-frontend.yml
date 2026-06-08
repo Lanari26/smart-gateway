@@ -1,0 +1,76 @@
+name: Deploy Frontend
+
+# Rebuilds & restarts ONLY the frontend (pay.lanari.rw) on the Contabo server,
+# and only when frontend code (or the compose file) changes. Backend pushes are
+# handled by deploy-backend.yml. The server .env is never touched.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'server.ts'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'package.json'
+      - 'Dockerfile'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+# Serialise with the backend workflow so concurrent rsyncs never race.
+concurrency:
+  group: smartpay-deploy
+  cancel-in-progress: false
+
+env:
+  DEPLOY_HOST: 176.126.87.142
+  DEPLOY_USER: root
+  DEPLOY_PATH: /opt/smartpay-gateway
+  SERVICE: frontend
+
+jobs:
+  deploy:
+    name: Build & deploy frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        # DEPLOY_SSH_KEY = base64 of the ed25519 private key (single line).
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Sync repo to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new" \
+            --exclude ".git" \
+            --exclude "node_modules" \
+            --exclude "dist" \
+            --exclude ".env" \
+            ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Rebuild & restart frontend
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' SERVICE='$SERVICE' bash -s" <<'EOSSH'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          docker compose -f docker-compose.prod.yml up -d --build "$SERVICE"
+          docker image prune -f
+          # Wait for the frontend to serve on its local port.
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1; then
+              echo "✅ Frontend healthy"; break
+            fi
+            echo "waiting for frontend... ($i)"; sleep 3
+          done
+          EOSSH
