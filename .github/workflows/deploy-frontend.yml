@@ -2,7 +2,7 @@ name: Deploy Frontend
 
 # Rebuilds & restarts ONLY the frontend (pay.lanari.rw) on the Contabo server,
 # and only when frontend code (or the compose file) changes. Backend pushes are
-# handled by deploy-backend.yml. The server .env is never touched.
+# handled by deploy-backend.yml. The server .env is bootstrapped once and reused.
 
 on:
   push:
@@ -39,10 +39,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure SSH
-        # DEPLOY_SSH_KEY = base64 of the ed25519 private key (single line).
+        # DEPLOY_SSH_KEY may be base64-encoded (preferred) or a raw PEM key.
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          printf '%s' "${{ secrets.DEPLOY_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key 2>/dev/null || true
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null 2>&1; then
+            printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          fi
           chmod 600 ~/.ssh/deploy_key
           ssh-keygen -y -f ~/.ssh/deploy_key > /dev/null
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
@@ -57,20 +60,36 @@ jobs:
             --exclude ".env" \
             ./ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
 
-      - name: Rebuild & restart frontend
+      - name: Rebuild frontend & smoke-test
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
             "$DEPLOY_USER@$DEPLOY_HOST" \
             "DEPLOY_PATH='$DEPLOY_PATH' SERVICE='$SERVICE' bash -s" <<'EOSSH'
           set -euo pipefail
           cd "$DEPLOY_PATH"
+
+          # Bootstrap the server .env once — secrets generated, never overwritten.
+          if [ ! -f .env ]; then
+            {
+              echo "POSTGRES_USER=smartpay"
+              echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+              echo "POSTGRES_DB=smartpay"
+              echo "JWT_ACCESS_SECRET=$(openssl rand -hex 32)"
+              echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)"
+              echo "CORS_ORIGIN=https://pay.lanari.rw"
+              echo "VITE_API_BASE_URL=https://api-pay.lanari.rw/api"
+              echo "WEB_PORT=3000"
+              echo "API_PORT=4000"
+            } > .env
+            echo "[deploy] created .env"
+          fi
+
           docker compose -f docker-compose.prod.yml up -d --build "$SERVICE"
           docker image prune -f
-          # Wait for the frontend to serve on its local port.
-          for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1; then
-              echo "✅ Frontend healthy"; break
-            fi
+
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:3000/ >/dev/null 2>&1 && { echo "Frontend healthy"; break; }
             echo "waiting for frontend... ($i)"; sleep 3
           done
+          echo "Frontend deployed"
           EOSSH
