@@ -46,6 +46,11 @@ enum InvoiceStatus {
   OVERDUE
 }
 
+enum ProjectStatus {
+  ACTIVE
+  CONFIGURING
+}
+
 model Merchant {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -143,4 +148,23 @@ model Invoice {
   createdAt   DateTime      @default(now())
 
   @@index([status])
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  webhookUrl  String        @default("")
+  keysCreated Int           @default(1)
+  totalCalls  Int           @default(0)
+  status      ProjectStatus @default(CONFIGURING)
+  createdAt   DateTime      @default(now())
+}
+
+// Single-row gateway configuration (admin tab).
+model GatewaySettings {
+  id                String   @id @default("singleton")
+  feeMarkup         Float    @default(1.5)
+  routingPreference String   @default("lowest-cost")
+  simulationSpeed   Int      @default(1200)
+  updatedAt         DateTime @updatedAt
 }

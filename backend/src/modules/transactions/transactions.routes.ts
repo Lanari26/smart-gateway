@@ -7,6 +7,16 @@ import * as service from './transactions.service.js';
 
 export const transactionsRouter = Router();
 
+// Public hosted-checkout endpoint — a customer paying does not have a merchant
+// session. Defined BEFORE the auth guard so it stays unauthenticated.
+transactionsRouter.post(
+  '/checkout',
+  validateBody(createTransactionSchema),
+  asyncHandler(async (req, res) => {
+    res.status(201).json({ transaction: await service.createTransaction(req.body) });
+  }),
+);
+
 transactionsRouter.use(authenticate);
 
 transactionsRouter.get(

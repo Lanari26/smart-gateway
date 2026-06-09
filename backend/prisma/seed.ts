@@ -6,6 +6,7 @@ import {
   SubscriptionStatus,
   ApiKeyType,
   InvoiceStatus,
+  ProjectStatus,
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
@@ -95,6 +96,20 @@ async function main() {
   for (const inv of invoices) {
     await prisma.invoice.upsert({ where: { number: inv.number }, update: {}, create: inv });
   }
+
+  // Projects (seed once when empty).
+  if ((await prisma.project.count()) === 0) {
+    await prisma.project.createMany({
+      data: [
+        { name: 'Cyberdyne Systems Shop Storefront', webhookUrl: 'https://api.cyberdyne.org/smartpay-endpoint', keysCreated: 3, totalCalls: 14820, status: ProjectStatus.ACTIVE },
+        { name: 'Stark Suite Recurring Cloud', webhookUrl: 'https://webhooks.starksuite.com/v1/router', keysCreated: 2, totalCalls: 349100, status: ProjectStatus.ACTIVE },
+        { name: 'Wayne Cave Diagnostics Suite', webhookUrl: 'http://gotham.internal:8080/pay-callback', keysCreated: 1, totalCalls: 450, status: ProjectStatus.CONFIGURING },
+      ],
+    });
+  }
+
+  // Settings singleton.
+  await prisma.gatewaySettings.upsert({ where: { id: 'singleton' }, update: {}, create: { id: 'singleton' } });
 
   console.log('✅ Seed complete.');
 }

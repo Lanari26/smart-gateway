@@ -8,6 +8,8 @@ import { apiKeysRouter } from './modules/apikeys/apikeys.routes.js';
 import { whitelistRouter } from './modules/whitelist/whitelist.routes.js';
 import { invoicesRouter } from './modules/invoices/invoices.routes.js';
 import { dashboardRouter } from './modules/dashboard/dashboard.routes.js';
+import { projectsRouter } from './modules/projects/projects.routes.js';
+import { settingsRouter } from './modules/settings/settings.routes.js';
 
 /** Aggregates every feature router under /api. */
 export const apiRouter = Router();
@@ -21,3 +23,5 @@ apiRouter.use('/api-keys', apiKeysRouter);
 apiRouter.use('/whitelist', whitelistRouter);
 apiRouter.use('/invoices', invoicesRouter);
 apiRouter.use('/dashboard', dashboardRouter);
+apiRouter.use('/projects', projectsRouter);
+apiRouter.use('/settings', settingsRouter);
