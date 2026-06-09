@@ -85,7 +85,7 @@ model Transaction {
   customerName  String
   customerEmail String
   amount        Float
-  currency      String            @default("USD")
+  currency      String            @default("RWF")
   method        String
   status        TransactionStatus @default(PENDING)
   createdAt     DateTime          @default(now())

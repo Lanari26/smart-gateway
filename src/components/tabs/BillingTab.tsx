@@ -24,7 +24,7 @@ export default function BillingTab() {
   // Form Field
   const [showPlanForm, setShowPlanForm] = useState(false);
   const [planName, setPlanName] = useState('');
-  const [planPrice, setPlanPrice] = useState(29);
+  const [planPrice, setPlanPrice] = useState(37700);
   const [planDesc, setPlanDesc] = useState('');
   const [planCycle, setPlanCycle] = useState<'Monthly' | 'Yearly' | 'Quarterly'>('Monthly');
 
@@ -50,7 +50,7 @@ export default function BillingTab() {
       });
       setPlans((prev) => [...prev, created]);
       setPlanName('');
-      setPlanPrice(29);
+      setPlanPrice(37700);
       setPlanDesc('');
       setShowPlanForm(false);
     } catch {
@@ -125,7 +125,7 @@ export default function BillingTab() {
               />
             </div>
             <div>
-              <label className="text-[11px] font-medium text-slate-350 block mb-1">Price per cycle (USD)</label>
+              <label className="text-[11px] font-medium text-slate-350 block mb-1">Price per cycle (RWF)</label>
               <input
                 type="number"
                 min={1}
@@ -201,7 +201,7 @@ export default function BillingTab() {
 
               <div className="space-y-3 mt-4">
                 <div className="font-display flex items-baseline space-x-1">
-                  <span className="text-2xl font-bold text-white">${plan.price}</span>
+                  <span className="text-2xl font-bold text-white">RWF {Math.round(plan.price).toLocaleString()}</span>
                   <span className="text-xs text-slate-500 font-mono"> / {plan.cycle === 'Monthly' ? 'mo' : plan.cycle === 'Quarterly' ? 'quarter' : 'yr'}</span>
                 </div>
 
@@ -277,7 +277,7 @@ export default function BillingTab() {
 
                       {/* Cost */}
                       <td className="px-5 py-3.5 font-bold font-mono text-slate-300">
-                        ${sub.amount}/mo
+                        RWF {Math.round(sub.amount).toLocaleString()}/mo
                       </td>
 
                       {/* Status */}

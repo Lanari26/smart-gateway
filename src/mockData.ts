@@ -8,7 +8,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     customerEmail: "sarah.c@cyberdyne.org",
     avatarLetter: "S",
     status: "paid",
-    amount: 149.00,
+    amount: 193700,
     method: "Visa •••• 4242",
     date: "Jun 08, 2026, 03:24 PM"
   },
@@ -18,7 +18,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     customerEmail: "bruce@waynecorp.com",
     avatarLetter: "B",
     status: "paid",
-    amount: 2499.00,
+    amount: 3248700,
     method: "Mastercard •••• 9111",
     date: "Jun 07, 2026, 11:12 AM"
   },
@@ -28,7 +28,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     customerEmail: "spidey@dailybugle.net",
     avatarLetter: "P",
     status: "failed",
-    amount: 15.00,
+    amount: 19500,
     method: "Amex •••• 1007",
     date: "Jun 06, 2026, 09:05 AM"
   },
@@ -38,7 +38,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     customerEmail: "tony@starkindustries.com",
     avatarLetter: "T",
     status: "paid",
-    amount: 12500.00,
+    amount: 16250000,
     method: "Apple Pay",
     date: "Jun 05, 2026, 06:45 PM"
   },
@@ -48,7 +48,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     customerEmail: "clark@dailyplanet.com",
     avatarLetter: "C",
     status: "pending",
-    amount: 49.00,
+    amount: 63700,
     method: "Google Pay",
     date: "Jun 05, 2026, 01:10 PM"
   },
@@ -58,7 +58,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     customerEmail: "selina@gothamcats.org",
     avatarLetter: "S",
     status: "paid",
-    amount: 180.00,
+    amount: 234000,
     method: "Visa •••• 1312",
     date: "Jun 04, 2026, 10:30 PM"
   }
@@ -69,7 +69,7 @@ export const INITIAL_BILLING_PLANS: BillingPlan[] = [
   {
     id: "plan_starter",
     name: "Developer Starter",
-    price: 19,
+    price: 24700,
     cycle: "Monthly",
     subscribers: 142,
     description: "Ideal for sandbox prototypes, early stage startups, and small hobby integrations.",
@@ -78,17 +78,17 @@ export const INITIAL_BILLING_PLANS: BillingPlan[] = [
   {
     id: "plan_growth",
     name: "Growth Scale Pro",
-    price: 89,
+    price: 115700,
     cycle: "Monthly",
     subscribers: 589,
-    description: "Our flagship subscription including priority visual dashboard, multi-currency processing, and instant webhooks.",
+    description: "Our flagship subscription including priority visual dashboard, RWF settlement processing, and instant webhooks.",
     isPopular: true,
     isScalable: true
   },
   {
     id: "plan_enterprise",
     name: "Enterprise Dedicated Integration",
-    price: 399,
+    price: 518700,
     cycle: "Monthly",
     subscribers: 48,
     description: "Bespoke isolated processing clusters, dedicated account managers, zero interchange markup, and direct bank settlement.",
@@ -106,7 +106,7 @@ export const INITIAL_CUSTOMERS: SubscriptionCustomer[] = [
     planName: "Growth Scale Pro",
     status: "Active",
     nextBilling: "Jul 08, 2026",
-    amount: 89,
+    amount: 115700,
     avatarColor: "bg-emerald-500/20 text-emerald-400"
   },
   {
@@ -116,7 +116,7 @@ export const INITIAL_CUSTOMERS: SubscriptionCustomer[] = [
     planName: "Developer Starter",
     status: "Active",
     nextBilling: "Jul 01, 2026",
-    amount: 19,
+    amount: 24700,
     avatarColor: "bg-blue-500/20 text-blue-400"
   },
   {
@@ -126,7 +126,7 @@ export const INITIAL_CUSTOMERS: SubscriptionCustomer[] = [
     planName: "Growth Scale Pro",
     status: "Active",
     nextBilling: "Jul 09, 2026",
-    amount: 89,
+    amount: 115700,
     avatarColor: "bg-pink-500/20 text-pink-400"
   },
   {
@@ -136,7 +136,7 @@ export const INITIAL_CUSTOMERS: SubscriptionCustomer[] = [
     planName: "Enterprise Dedicated Integration",
     status: "Active",
     nextBilling: "Jul 15, 2026",
-    amount: 399,
+    amount: 518700,
     avatarColor: "bg-purple-500/20 text-purple-400"
   },
   {
@@ -202,7 +202,7 @@ export const INITIAL_INVOICES: Invoice[] = [
     clientName: "Cyberdyne Systems",
     clientEmail: "accounts@cyberdyne.org",
     avatarLetter: "C",
-    amount: 1250.00,
+    amount: 1625000,
     issueDate: "Jun 08, 2026",
     status: "Pending"
   },
@@ -211,7 +211,7 @@ export const INITIAL_INVOICES: Invoice[] = [
     clientName: "Wayne Enterprises",
     clientEmail: "billing@waynecorp.com",
     avatarLetter: "W",
-    amount: 9800.00,
+    amount: 12740000,
     issueDate: "Jun 02, 2026",
     status: "Paid"
   },
@@ -220,7 +220,7 @@ export const INITIAL_INVOICES: Invoice[] = [
     clientName: "Daily Planet Co",
     clientEmail: "finance@dailyplanet.com",
     avatarLetter: "D",
-    amount: 450.00,
+    amount: 585000,
     issueDate: "May 28, 2026",
     status: "Overdue"
   },
@@ -229,7 +229,7 @@ export const INITIAL_INVOICES: Invoice[] = [
     clientName: "Oscorp Biotech",
     clientEmail: "payments@oscorp.io",
     avatarLetter: "O",
-    amount: 3200.00,
+    amount: 4160000,
     issueDate: "May 15, 2026",
     status: "Paid"
   }

@@ -19,10 +19,10 @@ import { ApiKey, WhitelistedIp } from '../../types';
 import { apiKeysApi, whitelistApi } from '../../lib/endpoints';
 
 const QUICK_PROMPTS = [
-  { label: "cURL Checkout Session", prompt: "Generate a cURL request to create a secure checkout session with an amount of $89.00 USD, dynamic billing parameters, and a custom metadata tag containing 'customerId: cust_alexrivera'." },
+  { label: "cURL Checkout Session", prompt: "Generate a cURL request to create a secure checkout session with an amount of RWF 115,700, dynamic billing parameters, and a custom metadata tag containing 'customerId: cust_alexrivera'." },
   { label: "Webhook Signature TS", prompt: "Create a TypeScript Express helper to securely parse and verify the SmartPay webhook signature header 'X-SmartPay-Signature' using HMAC SHA256." },
   { label: "Card Decline Handler", prompt: "Format a clean JSON sample structure for a card decline response containing ISO-8583 codes, decline reason '51_insufficient_funds', and suggestions for merchant logging." },
-  { label: "Multi-Currency Intent", prompt: "Explain how to structure a multi-currency JSON payment intent routing payload across both EUR and USD inside the SmartPay Gateway." }
+  { label: "RWF Payment Intent", prompt: "Explain how to structure a JSON payment intent routing payload settling in Rwandan Francs (RWF) inside the SmartPay Gateway." }
 ];
 
 export default function DevelopersTab() {

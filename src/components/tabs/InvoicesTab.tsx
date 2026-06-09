@@ -26,7 +26,7 @@ export default function InvoicesTab() {
   const [showForm, setShowForm] = useState(false);
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
-  const [amount, setAmount] = useState(100);
+  const [amount, setAmount] = useState(130000);
   const [status, setStatus] = useState<'Paid' | 'Pending' | 'Overdue'>('Pending');
 
   // Load from the API on mount
@@ -45,7 +45,7 @@ export default function InvoicesTab() {
       setSelectedInvoice(created);
       setClientName('');
       setClientEmail('');
-      setAmount(100);
+      setAmount(130000);
       setShowForm(false);
     } catch {
       /* surfaced by the API client */
@@ -124,7 +124,7 @@ export default function InvoicesTab() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[11px] font-medium text-slate-350 block mb-1">Invoice Amount (USD)</label>
+              <label className="text-[11px] font-medium text-slate-350 block mb-1">Invoice Amount (RWF)</label>
               <input
                 type="number"
                 min={1}
@@ -212,7 +212,7 @@ export default function InvoicesTab() {
 
                       {/* Amount subtotal */}
                       <td className="px-4 py-3.5 font-bold font-mono text-slate-200">
-                        ${inv.amount.toFixed(2)}
+                        RWF {Math.round(inv.amount).toLocaleString()}
                       </td>
 
                       {/* Invoice Status */}
@@ -314,21 +314,21 @@ export default function InvoicesTab() {
               <div className="border-t border-b border-slate-900 py-3.5 space-y-3 font-mono text-[11px]">
                 <div className="flex justify-between text-slate-500 uppercase tracking-widest text-[9px] pb-1.5 border-b border-slate-900/60">
                   <span>Authorized Items</span>
-                  <span>Charges (USD)</span>
+                  <span>Charges (RWF)</span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span>SmartPay API Payment Routing Utility</span>
-                  <span className="font-bold text-slate-300">${(selectedInvoice.amount * 0.9).toFixed(2)}</span>
+                  <span className="font-bold text-slate-300">RWF {Math.round(selectedInvoice.amount * 0.9).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>ISO-8583 Card settlement surcharge</span>
-                  <span className="font-bold text-slate-300">${(selectedInvoice.amount * 0.1).toFixed(2)}</span>
+                  <span className="font-bold text-slate-300">RWF {Math.round(selectedInvoice.amount * 0.1).toLocaleString()}</span>
                 </div>
 
                 <div className="border-t border-slate-900 pt-2 flex justify-between font-sans text-xs">
                   <span className="font-medium text-slate-400">Total Indicated Bill:</span>
-                  <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 font-display">${selectedInvoice.amount.toFixed(2)} USD</span>
+                  <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400 font-display">RWF {Math.round(selectedInvoice.amount).toLocaleString()}</span>
                 </div>
               </div>
 

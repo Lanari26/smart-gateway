@@ -33,7 +33,7 @@ export async function getDashboardStats() {
 
   return {
     totalVolume,
-    currency: 'USD',
+    currency: 'RWF',
     transactions: {
       total: totalCount,
       paid: paidCount,

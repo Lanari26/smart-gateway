@@ -44,12 +44,12 @@ async function main() {
 
   // Transactions (unique on reference).
   const transactions = [
-    { reference: 'tx_8f9e1a', customerName: 'Sarah Connor', customerEmail: 'sarah.c@cyberdyne.org', amount: 149.0, method: 'Visa •••• 4242', status: TransactionStatus.PAID },
-    { reference: 'tx_3c4d5e', customerName: 'Bruce Wayne', customerEmail: 'bruce@waynecorp.com', amount: 2499.0, method: 'Mastercard •••• 9111', status: TransactionStatus.PAID },
-    { reference: 'tx_2b3a5c', customerName: 'Peter Parker', customerEmail: 'spidey@dailybugle.net', amount: 15.0, method: 'Amex •••• 1007', status: TransactionStatus.FAILED },
-    { reference: 'tx_9d0e1f', customerName: 'Tony Stark', customerEmail: 'tony@starkindustries.com', amount: 12500.0, method: 'Apple Pay', status: TransactionStatus.PAID },
-    { reference: 'tx_4r5t6y', customerName: 'Clark Kent', customerEmail: 'clark@dailyplanet.com', amount: 49.0, method: 'Google Pay', status: TransactionStatus.PENDING },
-    { reference: 'tx_7u8i9o', customerName: 'Selina Kyle', customerEmail: 'selina@gothamcats.org', amount: 180.0, method: 'Visa •••• 1312', status: TransactionStatus.PAID },
+    { reference: 'tx_8f9e1a', customerName: 'Sarah Connor', customerEmail: 'sarah.c@cyberdyne.org', amount: 193700, method: 'Visa •••• 4242', status: TransactionStatus.PAID },
+    { reference: 'tx_3c4d5e', customerName: 'Bruce Wayne', customerEmail: 'bruce@waynecorp.com', amount: 3248700, method: 'Mastercard •••• 9111', status: TransactionStatus.PAID },
+    { reference: 'tx_2b3a5c', customerName: 'Peter Parker', customerEmail: 'spidey@dailybugle.net', amount: 19500, method: 'Amex •••• 1007', status: TransactionStatus.FAILED },
+    { reference: 'tx_9d0e1f', customerName: 'Tony Stark', customerEmail: 'tony@starkindustries.com', amount: 16250000, method: 'Apple Pay', status: TransactionStatus.PAID },
+    { reference: 'tx_4r5t6y', customerName: 'Clark Kent', customerEmail: 'clark@dailyplanet.com', amount: 63700, method: 'Google Pay', status: TransactionStatus.PENDING },
+    { reference: 'tx_7u8i9o', customerName: 'Selina Kyle', customerEmail: 'selina@gothamcats.org', amount: 234000, method: 'Visa •••• 1312', status: TransactionStatus.PAID },
   ];
   for (const t of transactions) {
     await prisma.transaction.upsert({ where: { reference: t.reference }, update: {}, create: t });
@@ -59,9 +59,9 @@ async function main() {
   if ((await prisma.plan.count()) === 0) {
     await prisma.plan.createMany({
       data: [
-        { name: 'Developer Starter', price: 19, cycle: PlanCycle.MONTHLY, subscribers: 142, description: 'Ideal for sandbox prototypes, early stage startups, and small hobby integrations.', isPopular: false },
-        { name: 'Growth Scale Pro', price: 89, cycle: PlanCycle.MONTHLY, subscribers: 589, description: 'Our flagship subscription including priority visual dashboard, multi-currency processing, and instant webhooks.', isPopular: true, isScalable: true },
-        { name: 'Enterprise Dedicated Integration', price: 399, cycle: PlanCycle.MONTHLY, subscribers: 48, description: 'Bespoke isolated processing clusters, dedicated account managers, zero interchange markup, and direct bank settlement.', isScalable: true },
+        { name: 'Developer Starter', price: 24700, cycle: PlanCycle.MONTHLY, subscribers: 142, description: 'Ideal for sandbox prototypes, early stage startups, and small hobby integrations.', isPopular: false },
+        { name: 'Growth Scale Pro', price: 115700, cycle: PlanCycle.MONTHLY, subscribers: 589, description: 'Our flagship subscription including priority visual dashboard, RWF settlement processing, and instant webhooks.', isPopular: true, isScalable: true },
+        { name: 'Enterprise Dedicated Integration', price: 518700, cycle: PlanCycle.MONTHLY, subscribers: 48, description: 'Bespoke isolated processing clusters, dedicated account managers, zero interchange markup, and direct bank settlement.', isScalable: true },
       ],
     });
   }
@@ -70,10 +70,10 @@ async function main() {
   if ((await prisma.subscription.count()) === 0) {
     await prisma.subscription.createMany({
       data: [
-        { name: 'Alex Rivera', email: 'alex@riveratech.io', planName: 'Growth Scale Pro', status: SubscriptionStatus.ACTIVE, nextBilling: 'Jul 08, 2026', amount: 89 },
-        { name: 'Clara Oswald', email: 'clara@spaceandtime.org', planName: 'Developer Starter', status: SubscriptionStatus.ACTIVE, nextBilling: 'Jul 01, 2026', amount: 19 },
-        { name: 'Miles Morales', email: 'miles@brooklynsound.com', planName: 'Growth Scale Pro', status: SubscriptionStatus.ACTIVE, nextBilling: 'Jul 09, 2026', amount: 89 },
-        { name: 'Diana Prince', email: 'diana@themyscira.gov', planName: 'Enterprise Dedicated Integration', status: SubscriptionStatus.ACTIVE, nextBilling: 'Jul 15, 2026', amount: 399 },
+        { name: 'Alex Rivera', email: 'alex@riveratech.io', planName: 'Growth Scale Pro', status: SubscriptionStatus.ACTIVE, nextBilling: 'Jul 08, 2026', amount: 115700 },
+        { name: 'Clara Oswald', email: 'clara@spaceandtime.org', planName: 'Developer Starter', status: SubscriptionStatus.ACTIVE, nextBilling: 'Jul 01, 2026', amount: 24700 },
+        { name: 'Miles Morales', email: 'miles@brooklynsound.com', planName: 'Growth Scale Pro', status: SubscriptionStatus.ACTIVE, nextBilling: 'Jul 09, 2026', amount: 115700 },
+        { name: 'Diana Prince', email: 'diana@themyscira.gov', planName: 'Enterprise Dedicated Integration', status: SubscriptionStatus.ACTIVE, nextBilling: 'Jul 15, 2026', amount: 518700 },
         { name: 'Wade Wilson', email: 'wade@deadpoolrentals.com', planName: 'Developer Starter', status: SubscriptionStatus.CANCELLED, nextBilling: null, amount: 0 },
       ],
     });
@@ -102,10 +102,10 @@ async function main() {
 
   // Invoices (unique on number).
   const invoices = [
-    { number: 'INV-2026-004', clientName: 'Cyberdyne Systems', clientEmail: 'accounts@cyberdyne.org', amount: 1250.0, issueDate: 'Jun 08, 2026', status: InvoiceStatus.PENDING },
-    { number: 'INV-2026-003', clientName: 'Wayne Enterprises', clientEmail: 'billing@waynecorp.com', amount: 9800.0, issueDate: 'Jun 02, 2026', status: InvoiceStatus.PAID },
-    { number: 'INV-2026-002', clientName: 'Daily Planet Co', clientEmail: 'finance@dailyplanet.com', amount: 450.0, issueDate: 'May 28, 2026', status: InvoiceStatus.OVERDUE },
-    { number: 'INV-2026-001', clientName: 'Oscorp Biotech', clientEmail: 'payments@oscorp.io', amount: 3200.0, issueDate: 'May 15, 2026', status: InvoiceStatus.PAID },
+    { number: 'INV-2026-004', clientName: 'Cyberdyne Systems', clientEmail: 'accounts@cyberdyne.org', amount: 1625000, issueDate: 'Jun 08, 2026', status: InvoiceStatus.PENDING },
+    { number: 'INV-2026-003', clientName: 'Wayne Enterprises', clientEmail: 'billing@waynecorp.com', amount: 12740000, issueDate: 'Jun 02, 2026', status: InvoiceStatus.PAID },
+    { number: 'INV-2026-002', clientName: 'Daily Planet Co', clientEmail: 'finance@dailyplanet.com', amount: 585000, issueDate: 'May 28, 2026', status: InvoiceStatus.OVERDUE },
+    { number: 'INV-2026-001', clientName: 'Oscorp Biotech', clientEmail: 'payments@oscorp.io', amount: 4160000, issueDate: 'May 15, 2026', status: InvoiceStatus.PAID },
   ];
   for (const inv of invoices) {
     await prisma.invoice.upsert({ where: { number: inv.number }, update: {}, create: inv });

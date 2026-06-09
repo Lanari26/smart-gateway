@@ -19,12 +19,13 @@ interface CheckoutPageProps {
   onNavigate: (screen: ActiveScreen) => void;
 }
 
+// All amounts settle in Rwandan Francs (RWF) — a zero-decimal currency.
 const CURRENCIES = [
-  { code: 'USD', symbol: '$', rate: 1 },
-  { code: 'EUR', symbol: '€', rate: 0.92 },
-  { code: 'GBP', symbol: '£', rate: 0.79 },
-  { code: 'JPY', symbol: '¥', rate: 155 }
+  { code: 'RWF', symbol: 'RWF ', rate: 1 }
 ];
+
+// Flat per-transaction routing fee, in RWF.
+const FLAT_FEE = 130;
 
 export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   // Plan and Currency Selection
@@ -86,7 +87,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
 
   // Pricing calculations
   const basePrice = selectedPlan.price * selectedCurrency.rate;
-  const processingFee = (basePrice * 0.015) + (0.10 * selectedCurrency.rate);
+  const processingFee = (basePrice * 0.015) + (FLAT_FEE * selectedCurrency.rate);
   const grandTotal = basePrice + processingFee;
 
   // Simulate Payments Flow
@@ -123,7 +124,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
           setPaymentState('failed');
           setStatusMessage("The transaction was declined by the simulated card issuer. (Code: 51 - Insufficient Funds)");
         } else {
-          const amountInUSD = selectedPlan.price;
+          const amountRWF = Math.round(selectedPlan.price);
           const method = `${getCardBrand(cardNumber)} •••• ${cardNumber.slice(-4) || '9999'}`;
 
           // Local receipt so the UI completes instantly.
@@ -133,7 +134,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
             customerEmail: email,
             avatarLetter: cardName.charAt(0).toUpperCase() || 'U',
             status: 'paid',
-            amount: Number(amountInUSD.toFixed(2)),
+            amount: amountRWF,
             method,
             date: new Date().toLocaleString(),
           };
@@ -142,7 +143,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
 
           // Record the charge on the live backend (public hosted-checkout endpoint).
           transactionsApi
-            .checkout({ customerName: cardName, customerEmail: email, amount: Number(amountInUSD.toFixed(2)), method })
+            .checkout({ customerName: cardName, customerEmail: email, amount: amountRWF, method })
             .then((txn) => setCreatedReceipt(txn))
             .catch(() => undefined);
         }
@@ -224,7 +225,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
                       </div>
                       <div>
                         <span className="text-lg font-bold font-display text-white">
-                          {selectedCurrency.symbol}{Math.round(plan.price * selectedCurrency.rate)}
+                          {selectedCurrency.symbol}{Math.round(plan.price * selectedCurrency.rate).toLocaleString()}
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono"> /mo</span>
                       </div>
@@ -435,24 +436,24 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-400">{selectedPlan.name}</span>
                   <span className="font-semibold text-slate-200">
-                    {selectedCurrency.symbol}{basePrice.toFixed(2)}
+                    {selectedCurrency.symbol}{Math.round(basePrice).toLocaleString()}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center text-xs text-indigo-400 bg-indigo-505/10 p-2.5 rounded-lg border border-indigo-900/30">
                   <div className="flex items-center space-x-1">
                     <TrendingDown className="w-3.5 h-3.5" />
-                    <span>Dynamic Routing fee (1.5% + $0.10)</span>
+                    <span>Dynamic Routing fee (1.5% + RWF 130)</span>
                   </div>
                   <span className="font-mono font-medium">
-                    {selectedCurrency.symbol}{processingFee.toFixed(2)}
+                    {selectedCurrency.symbol}{Math.round(processingFee).toLocaleString()}
                   </span>
                 </div>
 
                 <div className="border-t border-slate-850 pt-3 flex justify-between text-sm">
                   <span className="font-sans font-medium text-slate-300">Authorized Grand Total</span>
                   <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-rose-300 to-amber-200 font-display">
-                    {selectedCurrency.symbol}{grandTotal.toFixed(2)}
+                    {selectedCurrency.symbol}{Math.round(grandTotal).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -525,7 +526,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Settled Amount:</span>
-                <span className="text-emerald-400 font-bold">${createdReceipt.amount.toFixed(2)} USD</span>
+                <span className="text-emerald-400 font-bold">RWF {Math.round(createdReceipt.amount).toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Method Code:</span>

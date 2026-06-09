@@ -19,17 +19,17 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onNavigate }: LandingPageProps) {
-  // Volume state for calculator (in USD per month)
-  const [monthlyVolume, setMonthlyVolume] = useState<number>(50000);
-  const [txnRate, setTxnRate] = useState<number>(100); // average order value
+  // Volume state for calculator (in RWF per month)
+  const [monthlyVolume, setMonthlyVolume] = useState<number>(65000000);
+  const [txnRate, setTxnRate] = useState<number>(130000); // average order value
 
-  const expectedTxnCount = Math.round(monthlyVolume / (txnRate || 50));
-  
+  const expectedTxnCount = Math.round(monthlyVolume / (txnRate || 65000));
+
   // Pricing comparisons
-  // Standard processors: 2.9% + $0.30
-  const standardCost = (monthlyVolume * 0.029) + (expectedTxnCount * 0.30);
-  // SmartPay rate: 1.5% + $0.10
-  const smartPayCost = (monthlyVolume * 0.015) + (expectedTxnCount * 0.10);
+  // Standard processors: 2.9% + RWF 390 per transaction
+  const standardCost = (monthlyVolume * 0.029) + (expectedTxnCount * 390);
+  // SmartPay rate: 1.5% + RWF 130 per transaction
+  const smartPayCost = (monthlyVolume * 0.015) + (expectedTxnCount * 130);
   const savings = Math.max(0, standardCost - smartPayCost);
 
   // Sample API Code shown on landing page
@@ -37,8 +37,8 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
 
 // Initialize dynamic routing session
 const checkoutSession = await smartpay.sessions.create({
-  amount: 8900, // $89.00
-  currency: 'usd',
+  amount: 115700, // RWF 115,700
+  currency: 'rwf',
   success_url: 'https://mysite.com/success',
   metadata: {
     customerId: 'cust_abc123',
@@ -155,7 +155,7 @@ return checkoutSession.secure_url;`;
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-900">
               <span className="text-xs text-slate-400 uppercase tracking-widest font-mono">Gross Volume (YTD)</span>
-              <p className="text-2xl font-display font-semibold mt-1 text-white">$1,482,900.00</p>
+              <p className="text-2xl font-display font-semibold mt-1 text-white">RWF 1,927,770,000</p>
               <span className="text-xs text-emerald-400 mt-1 inline-flex items-center gap-1">↑ 24% month-over-month</span>
             </div>
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-900">
@@ -165,7 +165,7 @@ return checkoutSession.secure_url;`;
             </div>
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-900">
               <span className="text-xs text-slate-400 uppercase tracking-widest font-mono">AI Routed Savings</span>
-              <p className="text-2xl font-display font-semibold mt-1 text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500 font-semibold">$24,942.50</p>
+              <p className="text-2xl font-display font-semibold mt-1 text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500 font-semibold">RWF 32,425,250</p>
               <span className="text-xs text-amber-400/80 mt-1 inline-flex items-center gap-1">Dynamic merchant routing</span>
             </div>
           </div>
@@ -180,7 +180,7 @@ return checkoutSession.secure_url;`;
               Designed to optimize checkout conversion & developer efficiency
             </h2>
             <p className="text-slate-400 text-sm">
-              SmartPay sits directly behind your existing application stack to inject stability, compliance, dynamic multi-currency processing, and high-fidelity administration tooling.
+              SmartPay sits directly behind your existing application stack to inject stability, compliance, dynamic RWF settlement processing, and high-fidelity administration tooling.
             </p>
           </div>
 
@@ -214,7 +214,7 @@ return checkoutSession.secure_url;`;
               </div>
               <h3 className="text-lg font-semibold text-white mb-2">PCI Compliant Checkout</h3>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Beautiful dynamic client-side checkouts. Fully integrated credit validation, multi-currency dropdowns, and robust client transaction statuses.
+                Beautiful dynamic client-side checkouts. Fully integrated credit validation, RWF settlement, and robust client transaction statuses.
               </p>
             </div>
           </div>
@@ -293,21 +293,21 @@ return checkoutSession.secure_url;`;
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs text-slate-300 font-medium">Estimated Monthly Volume</span>
-                  <span className="text-sm font-semibold text-white font-mono">${monthlyVolume.toLocaleString()}</span>
+                  <span className="text-sm font-semibold text-white font-mono">RWF {monthlyVolume.toLocaleString()}</span>
                 </div>
-                <input 
-                  type="range" 
-                  min={1000} 
-                  max={250000} 
-                  step={5000}
+                <input
+                  type="range"
+                  min={1300000}
+                  max={325000000}
+                  step={6500000}
                   value={monthlyVolume}
                   onChange={(e) => setMonthlyVolume(Number(e.target.value))}
                   className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-505"
                 />
                 <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
-                  <span>$1,000</span>
-                  <span>$100,000</span>
-                  <span>$250,000+</span>
+                  <span>RWF 1.3M</span>
+                  <span>RWF 130M</span>
+                  <span>RWF 325M+</span>
                 </div>
               </div>
 
@@ -315,10 +315,10 @@ return checkoutSession.secure_url;`;
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs text-slate-300 font-medium font-sans">Average Order Value</span>
-                  <span className="text-sm font-mono font-semibold text-white">${txnRate} USD</span>
+                  <span className="text-sm font-mono font-semibold text-white">RWF {txnRate.toLocaleString()}</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                  {[25, 50, 100, 250].map((rate) => (
+                  {[32500, 65000, 130000, 325000].map((rate) => (
                     <button
                       key={rate}
                       type="button"
@@ -329,7 +329,7 @@ return checkoutSession.secure_url;`;
                           : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
                       }`}
                     >
-                      ${rate}
+                      {(rate / 1000).toLocaleString()}K
                     </button>
                   ))}
                 </div>
@@ -342,19 +342,19 @@ return checkoutSession.secure_url;`;
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span>Traditional Rate Model:</span>
-                  <span className="text-rose-400 font-medium">2.9% + $0.30</span>
+                  <span className="text-rose-400 font-medium">2.9% + RWF 390</span>
                 </div>
                 <div className="flex justify-between text-[11px]">
                   <span>SmartPay Protocol Rate:</span>
-                  <span className="text-emerald-400 font-semibold">1.5% + $0.10</span>
+                  <span className="text-emerald-400 font-semibold">1.5% + RWF 130</span>
                 </div>
               </div>
             </div>
 
             <div className="bg-slate-950/80 p-6 rounded-2xl border border-slate-800 flex flex-col justify-center items-center text-center">
               <span className="text-[10px] uppercase font-mono tracking-wider text-indigo-400 bg-indigo-550/10 px-2.5 py-1 rounded-full border border-indigo-500/20 mb-3">Estimated Monthly Savings</span>
-              <span className="text-4xl sm:text-5xl font-bold font-display text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">${Math.round(savings).toLocaleString()}</span>
-              <span className="text-xs text-slate-400 mt-2">Saved annually: <span className="font-semibold text-emerald-400 font-mono">${Math.round(savings * 12).toLocaleString()}</span></span>
+              <span className="text-4xl sm:text-5xl font-bold font-display text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">RWF {Math.round(savings).toLocaleString()}</span>
+              <span className="text-xs text-slate-400 mt-2">Saved annually: <span className="font-semibold text-emerald-400 font-mono">RWF {Math.round(savings * 12).toLocaleString()}</span></span>
 
               <button
                 id="calc-checkout-btn"

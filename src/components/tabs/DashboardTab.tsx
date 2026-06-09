@@ -97,7 +97,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-display font-bold text-white">${totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-display font-bold text-white">RWF {Math.round(totalVolume).toLocaleString()}</p>
           <div className="mt-2.5 flex items-center space-x-1 text-emerald-400 text-xs">
             <TrendingUp className="w-3 px-0.5" />
             <span className="font-semibold">+18.4%</span>
@@ -130,7 +130,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
               <RefreshCw className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-display font-bold text-slate-100">${pendingVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-display font-bold text-slate-100">RWF {Math.round(pendingVolume).toLocaleString()}</p>
           <div className="mt-2.5 flex items-center space-x-1 text-slate-500 text-[11px] font-mono">
             <span>Clearing routing cycle: 24h</span>
           </div>
@@ -146,7 +146,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             </div>
           </div>
           {/* Fictional savings calculation (1.4% saved on total volume) */}
-          <p className="text-2xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">${(totalVolume * 0.014).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">RWF {Math.round(totalVolume * 0.014).toLocaleString()}</p>
           <div className="mt-2.5 flex items-center space-x-1 text-amber-400 text-xs">
             <TrendingUp className="w-3 px-0.5 text-amber-400" />
             <span className="font-semibold">+1.4% Net Margin</span>
@@ -164,7 +164,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
             <p className="text-[11px] text-slate-500 mt-0.5">Clearing settlement timings versus hour clusters over the current week-period.</p>
           </div>
           <div className="flex space-x-2 text-[10px] font-mono text-slate-400 bg-slate-950 p-1.5 rounded-lg border border-slate-900">
-            <span className="px-2 py-0.5 rounded bg-indigo-600 font-bold text-white uppercase">Processed (USD)</span>
+            <span className="px-2 py-0.5 rounded bg-indigo-600 font-bold text-white uppercase">Processed (RWF)</span>
             <span className="px-2 py-0.5">Speed (ms)</span>
           </div>
         </div>
@@ -309,7 +309,7 @@ export default function DashboardTab({ onNavigate }: DashboardTabProps) {
 
                       {/* Settlement Amount */}
                       <td className="px-5 py-3.5 font-bold font-mono text-slate-200">
-                        ${txn.amount.toFixed(2)}
+                        RWF {Math.round(txn.amount).toLocaleString()}
                       </td>
 
                       {/* Method Used */}

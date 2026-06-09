@@ -66,8 +66,8 @@ export default function ProjectsTab() {
       data: {
         object: {
           id: `cs_test_${Math.random().toString(36).substring(2, 8)}`,
-          amount_total: 125000,
-          currency: "usd",
+          amount_total: 1625000,
+          currency: "rwf",
           customer_details: {
             email: "merchant-developer-billing@smartpay-gateway.io",
             name: "John Connor"
