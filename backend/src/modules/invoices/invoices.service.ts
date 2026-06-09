@@ -65,3 +65,18 @@ export async function markInvoicePaid(id: string) {
   });
   return toDTO(invoice);
 }
+
+// The frontend identifies invoices by their human number (INV-YYYY-NNN).
+export async function setInvoiceStatus(number: string, status: 'Paid' | 'Pending' | 'Overdue') {
+  const current = await prisma.invoice.findUnique({ where: { number } });
+  if (!current) throw HttpError.notFound('Invoice not found');
+  const invoice = await prisma.invoice.update({
+    where: { number },
+    data: { status: STATUS_FROM_DTO[status] },
+  });
+  return toDTO(invoice);
+}
+
+export async function deleteInvoice(number: string) {
+  await prisma.invoice.delete({ where: { number } });
+}

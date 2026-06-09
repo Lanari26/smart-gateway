@@ -1,91 +1,59 @@
-import React, { useState } from 'react';
-import { 
-  FolderGit, 
-  Settings, 
-  Plus, 
-  Send, 
-  Play, 
-  Terminal, 
-  Link2, 
-  Layers, 
-  ChevronRight,
-  Database,
-  CheckCircle2,
-  AlertTriangle
+import React, { useState, useEffect } from 'react';
+import {
+  Plus,
+  Send,
+  Terminal,
+  Link2,
+  Database
 } from 'lucide-react';
-
-interface MockProject {
-  id: string;
-  name: string;
-  keysCreated: number;
-  totalCalls: number;
-  webhookUrl: string;
-  status: 'active' | 'configuring';
-}
-
-const INITIAL_PROJECTS: MockProject[] = [
-  {
-    id: "proj_main_store",
-    name: "Cyberdyne Systems Shop Storefront",
-    keysCreated: 3,
-    totalCalls: 14820,
-    webhookUrl: "https://api.cyberdyne.org/smartpay-endpoint",
-    status: "active"
-  },
-  {
-    id: "proj_saas",
-    name: "Stark Suite Recurring Cloud",
-    keysCreated: 2,
-    totalCalls: 349100,
-    webhookUrl: "https://webhooks.starksuite.com/v1/router",
-    status: "active"
-  },
-  {
-    id: "proj_hobby_lab",
-    name: "Wayne Cave Diagnostics Suite",
-    keysCreated: 1,
-    totalCalls: 450,
-    webhookUrl: "http://gotham.internal:8080/pay-callback",
-    status: "configuring"
-  }
-];
+import { Project } from '../../types';
+import { projectsApi } from '../../lib/endpoints';
 
 export default function ProjectsTab() {
-  const [projects, setProjects] = useState<MockProject[]>(INITIAL_PROJECTS);
-  const [selectedProj, setSelectedProj] = useState<MockProject>(INITIAL_PROJECTS[0]);
-  
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProj, setSelectedProj] = useState<Project | null>(null);
+
   // Create project form fields
   const [newProjName, setNewProjName] = useState('');
   const [newWebhook, setNewWebhook] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Webhook Tester Variables
-  const [testWebhookUrl, setTestWebhookUrl] = useState(selectedProj.webhookUrl);
+  const [testWebhookUrl, setTestWebhookUrl] = useState('');
   const [testEventType, setTestEventType] = useState('checkout.session.completed');
   const [webhookLog, setWebhookLog] = useState<Array<{ time: string; type: 'info' | 'success' | 'err'; text: string }>>([]);
   const [activePayload, setActivePayload] = useState<any>(null);
   const [isSending, setIsSending] = useState(false);
 
-  // Handle adding custom projects
-  const handleCreateProject = (e: React.FormEvent) => {
+  // Load projects from the API
+  useEffect(() => {
+    let active = true;
+    projectsApi.list().then((list) => {
+      if (!active) return;
+      setProjects(list);
+      if (list[0]) {
+        setSelectedProj(list[0]);
+        setTestWebhookUrl(list[0].webhookUrl);
+      }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  // Create a project via the API
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjName) return;
-
-    const newObj: MockProject = {
-      id: `proj_${Math.random().toString(36).substring(2, 7)}`,
-      name: newProjName,
-      keysCreated: 1,
-      totalCalls: 0,
-      webhookUrl: newWebhook || "https://example.com/smartpay-receiver",
-      status: "configuring"
-    };
-
-    setProjects([...projects, newObj]);
-    setSelectedProj(newObj);
-    setTestWebhookUrl(newObj.webhookUrl);
-    setNewProjName('');
-    setNewWebhook('');
-    setShowAddForm(false);
+    try {
+      const created = await projectsApi.create({ name: newProjName, webhookUrl: newWebhook || undefined });
+      setProjects((prev) => [...prev, created]);
+      setSelectedProj(created);
+      setTestWebhookUrl(created.webhookUrl);
+      setNewProjName('');
+      setNewWebhook('');
+      setShowAddForm(false);
+    } catch {
+      /* surfaced by the API client */
+    }
   };
 
   const getEventJSONPayload = (type: string) => {
@@ -98,7 +66,7 @@ export default function ProjectsTab() {
       data: {
         object: {
           id: `cs_test_${Math.random().toString(36).substring(2, 8)}`,
-          amount_total: selectedProj.id === 'proj_saas' ? 8900 : 125000,
+          amount_total: 125000,
           currency: "usd",
           customer_details: {
             email: "merchant-developer-billing@smartpay-gateway.io",
@@ -219,7 +187,7 @@ export default function ProjectsTab() {
                     setActivePayload(null);
                   }}
                   className={`w-full p-3.5 rounded-xl text-left border flex items-center justify-between transition cursor-pointer ${
-                    selectedProj.id === proj.id
+                    selectedProj?.id === proj.id
                       ? 'bg-slate-900/60 border-indigo-500 shadow-md'
                       : 'bg-slate-950/20 border-slate-900 hover:border-slate-805 hover:bg-slate-900/15'
                   }`}
@@ -253,7 +221,7 @@ export default function ProjectsTab() {
                 <Database className="w-4 h-4 text-emerald-400" />
                 <span className="text-slate-400">Selected Client ID</span>
               </div>
-              <span className="font-mono text-[10px] text-indigo-400 uppercase">{selectedProj.id}</span>
+              <span className="font-mono text-[10px] text-indigo-400 uppercase">{selectedProj?.id ?? '—'}</span>
             </div>
 
             <div className="flex items-center justify-between text-xs p-2.5 bg-slate-950 rounded-xl border border-slate-900">

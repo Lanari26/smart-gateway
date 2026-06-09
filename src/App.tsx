@@ -1,70 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import { ActiveScreen, Transaction } from './types';
-import { INITIAL_TRANSACTIONS, StorageManager } from './mockData';
+import React, { useState } from 'react';
+import { ActiveScreen } from './types';
 import LandingPage from './components/LandingPage';
 import CheckoutPage from './components/CheckoutPage';
 import ConsoleLayout from './components/ConsoleLayout';
+import AuthPage from './components/AuthPage';
+import { useAuth } from './context/AuthContext';
 
 export default function App() {
-  // Global active screen state
+  const { user, loading } = useAuth();
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('landing');
-  
-  // Shared transactions logs
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  // Load Transactions on App launch
-  useEffect(() => {
-    const savedTxns = StorageManager.get<Transaction[]>('transactions', INITIAL_TRANSACTIONS);
-    setTransactions(savedTxns);
-  }, []);
-
-  // Handle addition of successful simulated charges
-  const handleAddNewTransaction = (newTxn: Transaction) => {
-    const updatedTxns = [newTxn, ...transactions];
-    setTransactions(updatedTxns);
-    StorageManager.set('transactions', updatedTxns);
+  // Navigation that gates the console behind authentication.
+  const navigate = (screen: ActiveScreen) => {
+    if (screen === 'console' && !user) {
+      setActiveScreen('auth');
+      return;
+    }
+    setActiveScreen(screen);
   };
 
-  // Handle simulated refund command
-  const handleRefundTransaction = (id: string) => {
-    const updatedTxns = transactions.map(txn => {
-      if (txn.id === id) {
-        return { 
-          ...txn, 
-          status: 'failed' as const, // Change paid to refunded (mocked status representation)
-          method: `${txn.method} (REFUNDED)`
-        };
-      }
-      return txn;
-    });
-    setTransactions(updatedTxns);
-    StorageManager.set('transactions', updatedTxns);
-  };
+  if (loading) {
+    return (
+      <div className="bg-slate-950 text-slate-400 min-h-screen flex items-center justify-center font-sans text-sm">
+        Loading…
+      </div>
+    );
+  }
 
-  // Navigating routing selector
   return (
     <div className="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
-      
-      {/* Dynamic Screen rendering */}
-      {activeScreen === 'landing' && (
-        <LandingPage onNavigate={setActiveScreen} />
+      {activeScreen === 'landing' && <LandingPage onNavigate={navigate} />}
+
+      {activeScreen === 'checkout' && <CheckoutPage onNavigate={navigate} />}
+
+      {activeScreen === 'auth' && (
+        <AuthPage onNavigate={navigate} onAuthed={() => setActiveScreen('console')} />
       )}
 
-      {activeScreen === 'checkout' && (
-        <CheckoutPage 
-          onNavigate={setActiveScreen} 
-          onPaymentSuccess={handleAddNewTransaction} 
-        />
-      )}
+      {activeScreen === 'console' && user && <ConsoleLayout onNavigate={navigate} />}
 
-      {activeScreen === 'console' && (
-        <ConsoleLayout 
-          onNavigate={setActiveScreen} 
-          transactions={transactions} 
-          onRefundTransaction={handleRefundTransaction}
-        />
+      {/* If a logged-out user lands on console somehow, send them to auth. */}
+      {activeScreen === 'console' && !user && (
+        <AuthPage onNavigate={navigate} onAuthed={() => setActiveScreen('console')} />
       )}
-
     </div>
   );
 }

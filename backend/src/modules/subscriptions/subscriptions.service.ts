@@ -63,6 +63,22 @@ export async function createSubscription(input: CreateSubscriptionInput) {
   return toDTO(sub);
 }
 
+export async function setSubscriptionStatus(id: string, status: 'Active' | 'Pending' | 'Cancelled') {
+  const current = await prisma.subscription.findUnique({ where: { id } });
+  if (!current) throw HttpError.notFound('Subscription not found');
+  const nextBilling =
+    status === 'Active'
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+      : status === 'Pending'
+        ? 'Paused'
+        : null;
+  const sub = await prisma.subscription.update({
+    where: { id },
+    data: { status: STATUS_FROM_DTO[status], nextBilling, ...(status === 'Cancelled' ? { amount: 0 } : {}) },
+  });
+  return toDTO(sub);
+}
+
 export async function cancelSubscription(id: string) {
   const current = await prisma.subscription.findUnique({ where: { id } });
   if (!current) throw HttpError.notFound('Subscription not found');

@@ -12,11 +12,11 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { ActiveScreen, BillingPlan, Transaction } from '../types';
-import { INITIAL_BILLING_PLANS, StorageManager, INITIAL_TRANSACTIONS } from '../mockData';
+import { INITIAL_BILLING_PLANS } from '../mockData';
+import { transactionsApi } from '../lib/endpoints';
 
 interface CheckoutPageProps {
   onNavigate: (screen: ActiveScreen) => void;
-  onPaymentSuccess?: (newTxn: Transaction) => void;
 }
 
 const CURRENCIES = [
@@ -26,7 +26,7 @@ const CURRENCIES = [
   { code: 'JPY', symbol: '¥', rate: 155 }
 ];
 
-export default function CheckoutPage({ onNavigate, onPaymentSuccess }: CheckoutPageProps) {
+export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   // Plan and Currency Selection
   const [selectedPlan, setSelectedPlan] = useState<BillingPlan>(INITIAL_BILLING_PLANS[1]);
   const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]);
@@ -123,32 +123,28 @@ export default function CheckoutPage({ onNavigate, onPaymentSuccess }: CheckoutP
           setPaymentState('failed');
           setStatusMessage("The transaction was declined by the simulated card issuer. (Code: 51 - Insufficient Funds)");
         } else {
-          // Construct success transaction
-          const txnId = `tx_${Math.random().toString(36).substring(2, 8)}`;
           const amountInUSD = selectedPlan.price;
-          
-          const newTxn: Transaction = {
-            id: txnId,
+          const method = `${getCardBrand(cardNumber)} •••• ${cardNumber.slice(-4) || '9999'}`;
+
+          // Local receipt so the UI completes instantly.
+          const localReceipt: Transaction = {
+            id: `tx_${Math.random().toString(36).substring(2, 8)}`,
             customerName: cardName,
             customerEmail: email,
             avatarLetter: cardName.charAt(0).toUpperCase() || 'U',
             status: 'paid',
             amount: Number(amountInUSD.toFixed(2)),
-            method: `${getCardBrand(cardNumber)} •••• ${cardNumber.slice(-4) || '9999'}`,
-            date: new Date().toLocaleString()
+            method,
+            date: new Date().toLocaleString(),
           };
-
-          // Save to LocalStorage
-          const currentTxns = StorageManager.get<Transaction[]>('transactions', INITIAL_TRANSACTIONS);
-          StorageManager.set('transactions', [newTxn, ...currentTxns]);
-
-          setCreatedReceipt(newTxn);
+          setCreatedReceipt(localReceipt);
           setPaymentState('success');
 
-          // Notify parent app if callback given
-          if (onPaymentSuccess) {
-            onPaymentSuccess(newTxn);
-          }
+          // Record the charge on the live backend (public hosted-checkout endpoint).
+          transactionsApi
+            .checkout({ customerName: cardName, customerEmail: email, amount: Number(amountInUSD.toFixed(2)), method })
+            .then((txn) => setCreatedReceipt(txn))
+            .catch(() => undefined);
         }
       }
     }, 1200);

@@ -1,27 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ActiveScreen, 
-  ConsoleTab, 
-  Transaction 
+import React, { useState } from 'react';
+import {
+  ActiveScreen,
+  ConsoleTab,
 } from '../types';
-import { 
-  INITIAL_TRANSACTIONS, 
-  StorageManager 
-} from '../mockData';
-import { 
-  Layers, 
-  LayoutDashboard, 
-  FolderGit, 
-  BadgeDollarSign, 
-  Terminal, 
-  FileText, 
-  Sliders, 
-  HelpCircle, 
-  CreditCard, 
+import { useAuth } from '../context/AuthContext';
+import {
+  Layers,
+  LayoutDashboard,
+  FolderGit,
+  BadgeDollarSign,
+  Terminal,
+  FileText,
+  Sliders,
+  CreditCard,
   ArrowLeft,
   Bell,
-  Search,
-  BookOpen
+  BookOpen,
+  LogOut
 } from 'lucide-react';
 
 // Child Tab components
@@ -34,12 +29,16 @@ import AdminTab from './tabs/AdminTab';
 
 interface ConsoleLayoutProps {
   onNavigate: (screen: ActiveScreen) => void;
-  transactions: Transaction[];
-  onRefundTransaction: (id: string) => void;
 }
 
-export default function ConsoleLayout({ onNavigate, transactions, onRefundTransaction }: ConsoleLayoutProps) {
+export default function ConsoleLayout({ onNavigate }: ConsoleLayoutProps) {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<ConsoleTab>('dashboard');
+
+  const handleLogout = () => {
+    logout();
+    onNavigate('landing');
+  };
 
   // Sidebar Menu mapping
   const MENU_ITEMS = [
@@ -116,6 +115,21 @@ export default function ConsoleLayout({ onNavigate, transactions, onRefundTransa
             <ArrowLeft className="w-3 h-3 text-slate-650" />
             <span>Go to Landing Page</span>
           </button>
+
+          {/* Signed-in identity + sign out */}
+          <div className="pt-2 mt-1 border-t border-slate-900 flex items-center justify-between gap-2">
+            <span className="text-[10px] text-slate-500 font-mono truncate" title={user?.email}>
+              {user?.name || user?.email}
+            </span>
+            <button
+              id="side-logout"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-rose-400 hover:bg-rose-950/40 transition cursor-pointer shrink-0"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Sign out</span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -161,11 +175,7 @@ export default function ConsoleLayout({ onNavigate, transactions, onRefundTransa
         {/* Dynamic Inner Tab Router */}
         <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
           {activeTab === 'dashboard' && (
-            <DashboardTab 
-              transactions={transactions} 
-              onRefund={onRefundTransaction} 
-              onNavigate={onNavigate}
-            />
+            <DashboardTab onNavigate={onNavigate} />
           )}
 
           {activeTab === 'projects' && (

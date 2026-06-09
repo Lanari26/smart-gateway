@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { asyncHandler } from '../../lib/async-handler.js';
 import { authenticate } from '../../middleware/auth.js';
 import { validateBody } from '../../middleware/validate.js';
-import { createSubscriptionSchema } from './subscriptions.schemas.js';
+import { createSubscriptionSchema, updateSubscriptionSchema } from './subscriptions.schemas.js';
 import * as service from './subscriptions.service.js';
 
 export const subscriptionsRouter = Router();
@@ -28,5 +28,13 @@ subscriptionsRouter.post(
   '/:id/cancel',
   asyncHandler(async (req, res) => {
     res.json({ subscription: await service.cancelSubscription(req.params.id) });
+  }),
+);
+
+subscriptionsRouter.patch(
+  '/:id',
+  validateBody(updateSubscriptionSchema),
+  asyncHandler(async (req, res) => {
+    res.json({ subscription: await service.setSubscriptionStatus(req.params.id, req.body.status) });
   }),
 );

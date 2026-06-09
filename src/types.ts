@@ -1,4 +1,4 @@
-export type ActiveScreen = 'landing' | 'checkout' | 'console';
+export type ActiveScreen = 'landing' | 'checkout' | 'console' | 'auth';
 
 export type ConsoleTab =
   | 'dashboard'
@@ -64,4 +64,19 @@ export interface Invoice {
   amount: number;
   issueDate: string;
   status: 'Paid' | 'Pending' | 'Overdue';
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  webhookUrl: string;
+  keysCreated: number;
+  totalCalls: number;
+  status: 'active' | 'configuring';
+}
+
+export interface GatewaySettings {
+  feeMarkup: number;
+  routingPreference: string;
+  simulationSpeed: number;
 }

@@ -1,28 +1,45 @@
-import React, { useState } from 'react';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Search, 
-  ArrowUpRight, 
-  CreditCard, 
-  Filter, 
-  RefreshCw, 
-  DollarSign, 
+import React, { useState, useEffect } from 'react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Search,
+  CreditCard,
+  Filter,
+  RefreshCw,
+  DollarSign,
   Sparkles,
-  HelpCircle,
   Clock
 } from 'lucide-react';
-import { Transaction } from '../../types';
+import { ActiveScreen, Transaction } from '../../types';
+import { transactionsApi } from '../../lib/endpoints';
 
 interface DashboardTabProps {
-  transactions: Transaction[];
-  onRefund: (id: string) => void;
-  onNavigate: (screen: 'landing' | 'checkout' | 'console') => void;
+  onNavigate: (screen: ActiveScreen) => void;
 }
 
-export default function DashboardTab({ transactions, onRefund, onNavigate }: DashboardTabProps) {
+export default function DashboardTab({ onNavigate }: DashboardTabProps) {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'pending' | 'failed'>('all');
+
+  // Load live transactions from the API.
+  useEffect(() => {
+    let active = true;
+    transactionsApi
+      .list()
+      .then((t) => { if (active) setTransactions(t); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const handleRefund = async (id: string) => {
+    try {
+      const updated = await transactionsApi.refund(id);
+      setTransactions((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    } catch {
+      /* surfaced by the API client; ignore here */
+    }
+  };
 
   // Compute stats
   const totalVolume = transactions
@@ -312,7 +329,7 @@ export default function DashboardTab({ transactions, onRefund, onNavigate }: Das
                         {txn.status === 'paid' ? (
                           <button
                             type="button"
-                            onClick={() => onRefund(txn.id)}
+                            onClick={() => handleRefund(txn.id)}
                             className="text-[10px] font-semibold text-slate-400 hover:text-rose-400 px-2 py-1 rounded bg-slate-950 hover:bg-rose-950/20 border border-slate-900 hover:border-rose-900/30 transition cursor-pointer"
                           >
                             Refund Client

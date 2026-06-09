@@ -16,7 +16,7 @@ import {
   MessageSquareCode
 } from 'lucide-react';
 import { ApiKey, WhitelistedIp } from '../../types';
-import { INITIAL_API_KEYS, INITIAL_IPS, StorageManager } from '../../mockData';
+import { apiKeysApi, whitelistApi } from '../../lib/endpoints';
 
 const QUICK_PROMPTS = [
   { label: "cURL Checkout Session", prompt: "Generate a cURL request to create a secure checkout session with an amount of $89.00 USD, dynamic billing parameters, and a custom metadata tag containing 'customerId: cust_alexrivera'." },
@@ -49,48 +49,35 @@ export default function DevelopersTab() {
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [errorAi, setErrorAi] = useState('');
 
-  // Hydrate lists
+  // Load from the API on mount
   useEffect(() => {
-    const loadedKeys = StorageManager.get<ApiKey[]>('apikeys', INITIAL_API_KEYS);
-    const loadedIps = StorageManager.get<WhitelistedIp[]>('ips', INITIAL_IPS);
-    setApiKeys(loadedKeys);
-    setIps(loadedIps);
+    let active = true;
+    apiKeysApi.list().then((k) => active && setApiKeys(k)).catch(() => undefined);
+    whitelistApi.list().then((i) => active && setIps(i)).catch(() => undefined);
+    return () => { active = false; };
   }, []);
 
-  const updateApiKeys = (keys: ApiKey[]) => {
-    setApiKeys(keys);
-    StorageManager.set('apikeys', keys);
-  };
-
-  const updateIps = (ipList: WhitelistedIp[]) => {
-    setIps(ipList);
-    StorageManager.set('ips', ipList);
-  };
-
-  // Create customized credit token keys
-  const handleCreateApiKey = (e: React.FormEvent) => {
+  // Create a key (token generated server-side)
+  const handleCreateApiKey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newKeyName) return;
-
-    const prefix = newKeyType === 'PUBLIC' ? 'pk_test_' : 'sk_test_';
-    const randPart = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-    const mockToken = `${prefix}${randPart}`;
-
-    const newKey: ApiKey = {
-      id: `key_${Math.random().toString(36).substring(2, 7)}`,
-      label: newKeyName,
-      type: newKeyType,
-      token: mockToken,
-      created: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
-    };
-
-    updateApiKeys([...apiKeys, newKey]);
-    setNewKeyName('');
-    setShowKeyForm(false);
+    try {
+      const created = await apiKeysApi.create({ label: newKeyName, type: newKeyType, mode: 'test' });
+      setApiKeys((prev) => [...prev, created]);
+      setNewKeyName('');
+      setShowKeyForm(false);
+    } catch {
+      /* surfaced by the API client */
+    }
   };
 
-  const handleDeleteApiKey = (id: string) => {
-    updateApiKeys(apiKeys.filter(k => k.id !== id));
+  const handleDeleteApiKey = async (id: string) => {
+    try {
+      await apiKeysApi.remove(id);
+      setApiKeys((prev) => prev.filter((k) => k.id !== id));
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleCopyToken = (id: string, token: string) => {
@@ -99,25 +86,28 @@ export default function DevelopersTab() {
     setTimeout(() => setCopiedKeyId(''), 1500);
   };
 
-  // Add whitelisted Server Ingress IPs
-  const handleAddIp = (e: React.FormEvent) => {
+  // Add whitelisted server ingress IP
+  const handleAddIp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newIpAddr) return;
-
-    const newIp: WhitelistedIp = {
-      id: `ip_${Math.random().toString(36).substring(2, 7)}`,
-      ip: newIpAddr,
-      label: newIpLabel || "Authorized Server Node"
-    };
-
-    updateIps([...ips, newIp]);
-    setNewIpAddr('');
-    setNewIpLabel('');
-    setShowIpForm(false);
+    try {
+      const created = await whitelistApi.create({ ip: newIpAddr, label: newIpLabel || 'Authorized Server Node' });
+      setIps((prev) => [...prev, created]);
+      setNewIpAddr('');
+      setNewIpLabel('');
+      setShowIpForm(false);
+    } catch {
+      /* ignore */
+    }
   };
 
-  const handleDeleteIp = (id: string) => {
-    updateIps(ips.filter(ip => ip.id !== id));
+  const handleDeleteIp = async (id: string) => {
+    try {
+      await whitelistApi.remove(id);
+      setIps((prev) => prev.filter((ip) => ip.id !== id));
+    } catch {
+      /* ignore */
+    }
   };
 
   // Call the server side Express Gemini Gateway Route

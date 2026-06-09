@@ -14,10 +14,10 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { BillingPlan, SubscriptionCustomer } from '../../types';
-import { INITIAL_BILLING_PLANS, INITIAL_CUSTOMERS, StorageManager } from '../../mockData';
+import { plansApi, subscriptionsApi } from '../../lib/endpoints';
 
 export default function BillingTab() {
-  // Synchronized States
+  // Live data
   const [plans, setPlans] = useState<BillingPlan[]>([]);
   const [subscribers, setSubscribers] = useState<SubscriptionCustomer[]>([]);
 
@@ -28,84 +28,64 @@ export default function BillingTab() {
   const [planDesc, setPlanDesc] = useState('');
   const [planCycle, setPlanCycle] = useState<'Monthly' | 'Yearly' | 'Quarterly'>('Monthly');
 
-  // Load state on mount
+  // Load from the API on mount
   useEffect(() => {
-    const loadedPlans = StorageManager.get<BillingPlan[]>('plans', INITIAL_BILLING_PLANS);
-    const loadedSubs = StorageManager.get<SubscriptionCustomer[]>('subscribers', INITIAL_CUSTOMERS);
-    setPlans(loadedPlans);
-    setSubscribers(loadedSubs);
+    let active = true;
+    plansApi.list().then((p) => active && setPlans(p)).catch(() => undefined);
+    subscriptionsApi.list().then((s) => active && setSubscribers(s)).catch(() => undefined);
+    return () => { active = false; };
   }, []);
 
-  // Sync back helper
-  const updatePlans = (newPlans: BillingPlan[]) => {
-    setPlans(newPlans);
-    StorageManager.set('plans', newPlans);
-  };
-
-  const updateSubscribers = (newSubs: SubscriptionCustomer[]) => {
-    setSubscribers(newSubs);
-    StorageManager.set('subscribers', newSubs);
-  };
-
-  // Add planar packaging
-  const handleCreatePlan = (e: React.FormEvent) => {
+  // Create a plan via the API
+  const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!planName) return;
-
-    const newPlan: BillingPlan = {
-      id: `plan_${Math.random().toString(36).substring(2, 7)}`,
-      name: planName,
-      price: planPrice,
-      cycle: planCycle,
-      subscribers: 0,
-      description: planDesc || "No manual description provided for model.",
-      isScalable: true
-    };
-
-    updatePlans([...plans, newPlan]);
-    setPlanName('');
-    setPlanPrice(29);
-    setPlanDesc('');
-    setShowPlanForm(false);
-  };
-
-  // Delete packaging plan
-  const handleDeletePlan = (id: string) => {
-    const filter = plans.filter(p => p.id !== id);
-    updatePlans(filter);
-  };
-
-  // Manipulate customer states: Pause, Resume, Cancel
-  const toggleSubscriberStatus = (id: string, currentStatus: 'Active' | 'Pending' | 'Cancelled') => {
-    let nextStatus: 'Active' | 'Pending' | 'Cancelled' = 'Active';
-    if (currentStatus === 'Active') {
-      nextStatus = 'Pending'; // Serves as "Paused" in this sandbox
-    } else if (currentStatus === 'Pending') {
-      nextStatus = 'Active';
+    try {
+      const created = await plansApi.create({
+        name: planName,
+        price: planPrice,
+        cycle: planCycle,
+        description: planDesc || 'No manual description provided for model.',
+        isScalable: true,
+      });
+      setPlans((prev) => [...prev, created]);
+      setPlanName('');
+      setPlanPrice(29);
+      setPlanDesc('');
+      setShowPlanForm(false);
+    } catch {
+      /* surfaced by the API client */
     }
-
-    const updated = subscribers.map(sub => {
-      if (sub.id === id) {
-        return { 
-          ...sub, 
-          status: nextStatus,
-          nextBilling: nextStatus === 'Active' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() : 'Paused' 
-        };
-      }
-      return sub;
-    });
-
-    updateSubscribers(updated);
   };
 
-  const cancelSubscriber = (id: string) => {
-    const updated = subscribers.map(sub => {
-      if (sub.id === id) {
-        return { ...sub, status: 'Cancelled' as const, nextBilling: 'N/A', amount: 0 };
-      }
-      return sub;
-    });
-    updateSubscribers(updated);
+  // Delete a plan via the API
+  const handleDeletePlan = async (id: string) => {
+    try {
+      await plansApi.remove(id);
+      setPlans((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Pause (Active -> Pending) / Resume (Pending -> Active), persisted via the API.
+  const toggleSubscriberStatus = async (id: string, currentStatus: 'Active' | 'Pending' | 'Cancelled') => {
+    const nextStatus: 'Active' | 'Pending' = currentStatus === 'Active' ? 'Pending' : 'Active';
+    try {
+      const updated = await subscriptionsApi.setStatus(id, nextStatus);
+      setSubscribers((prev) => prev.map((sub) => (sub.id === id ? updated : sub)));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const cancelSubscriber = async (id: string) => {
+    try {
+      const updated = await subscriptionsApi.cancel(id);
+      setSubscribers((prev) => prev.map((sub) => (sub.id === id ? updated : sub)));
+    } catch {
+      /* ignore */
+    }
   };
 
   return (

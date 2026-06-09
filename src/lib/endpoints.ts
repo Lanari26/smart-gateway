@@ -6,6 +6,8 @@ import {
   ApiKey,
   WhitelistedIp,
   Invoice,
+  Project,
+  GatewaySettings,
 } from "../types";
 
 // ── Auth ─────────────────────────────────────────────────────────────────
@@ -45,6 +47,9 @@ export const transactionsApi = {
   list: () => apiRequest<{ transactions: Transaction[] }>("/transactions").then((r) => r.transactions),
   create: (input: { customerName: string; customerEmail: string; amount: number; method?: string; status?: Transaction["status"] }) =>
     apiRequest<{ transaction: Transaction }>("/transactions", { method: "POST", body: input }).then((r) => r.transaction),
+  // Public hosted checkout — no auth (a paying customer has no merchant session).
+  checkout: (input: { customerName: string; customerEmail: string; amount: number; method?: string }) =>
+    apiRequest<{ transaction: Transaction }>("/transactions/checkout", { method: "POST", body: input, auth: false }).then((r) => r.transaction),
   refund: (id: string) =>
     apiRequest<{ transaction: Transaction }>(`/transactions/${id}/refund`, { method: "POST" }).then((r) => r.transaction),
 };
@@ -64,6 +69,8 @@ export const subscriptionsApi = {
     apiRequest<{ subscription: SubscriptionCustomer }>("/subscriptions", { method: "POST", body: input }).then((r) => r.subscription),
   cancel: (id: string) =>
     apiRequest<{ subscription: SubscriptionCustomer }>(`/subscriptions/${id}/cancel`, { method: "POST" }).then((r) => r.subscription),
+  setStatus: (id: string, status: SubscriptionCustomer["status"]) =>
+    apiRequest<{ subscription: SubscriptionCustomer }>(`/subscriptions/${id}`, { method: "PATCH", body: { status } }).then((r) => r.subscription),
 };
 
 // ── API keys ─────────────────────────────────────────────────────────────
@@ -89,6 +96,24 @@ export const invoicesApi = {
     apiRequest<{ invoice: Invoice }>("/invoices", { method: "POST", body: input }).then((r) => r.invoice),
   pay: (id: string) =>
     apiRequest<{ invoice: Invoice }>(`/invoices/${id}/pay`, { method: "POST" }).then((r) => r.invoice),
+  setStatus: (id: string, status: Invoice["status"]) =>
+    apiRequest<{ invoice: Invoice }>(`/invoices/${id}`, { method: "PATCH", body: { status } }).then((r) => r.invoice),
+  remove: (id: string) => apiRequest<void>(`/invoices/${id}`, { method: "DELETE" }),
+};
+
+// ── Projects ───────────────────────────────────────────────────────────────
+export const projectsApi = {
+  list: () => apiRequest<{ projects: Project[] }>("/projects").then((r) => r.projects),
+  create: (input: { name: string; webhookUrl?: string }) =>
+    apiRequest<{ project: Project }>("/projects", { method: "POST", body: input }).then((r) => r.project),
+  remove: (id: string) => apiRequest<void>(`/projects/${id}`, { method: "DELETE" }),
+};
+
+// ── Settings (admin) ─────────────────────────────────────────────────────────
+export const settingsApi = {
+  get: () => apiRequest<{ settings: GatewaySettings }>("/settings").then((r) => r.settings),
+  update: (patch: Partial<GatewaySettings>) =>
+    apiRequest<{ settings: GatewaySettings }>("/settings", { method: "PATCH", body: patch }).then((r) => r.settings),
 };
 
 // ── Dashboard ──────────────────────────────────────────────────────────────

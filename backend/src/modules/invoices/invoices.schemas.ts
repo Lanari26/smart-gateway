@@ -9,3 +9,9 @@ export const createInvoiceSchema = z.object({
 });
 
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
+
+export const updateInvoiceSchema = z.object({
+  status: z.enum(['Paid', 'Pending', 'Overdue']),
+});
+
+export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;

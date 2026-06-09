@@ -16,7 +16,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Invoice } from '../../types';
-import { INITIAL_INVOICES, StorageManager } from '../../mockData';
+import { invoicesApi } from '../../lib/endpoints';
 
 export default function InvoicesTab() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -29,59 +29,47 @@ export default function InvoicesTab() {
   const [amount, setAmount] = useState(100);
   const [status, setStatus] = useState<'Paid' | 'Pending' | 'Overdue'>('Pending');
 
-  // Load state
+  // Load from the API on mount
   useEffect(() => {
-    const loadedInvoices = StorageManager.get<Invoice[]>('invoices', INITIAL_INVOICES);
-    setInvoices(loadedInvoices);
+    let active = true;
+    invoicesApi.list().then((inv) => active && setInvoices(inv)).catch(() => undefined);
+    return () => { active = false; };
   }, []);
 
-  const updateInvoices = (newInvoices: Invoice[]) => {
-    setInvoices(newInvoices);
-    StorageManager.set('invoices', newInvoices);
-  };
-
-  const handleCreateInvoice = (e: React.FormEvent) => {
+  const handleCreateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientName || !clientEmail) return;
-
-    const idNum = Math.floor(Math.random() * 900) + 100;
-    const newInvoice: Invoice = {
-      id: `INV-2026-${idNum}`,
-      clientName,
-      clientEmail,
-      avatarLetter: clientName.charAt(0).toUpperCase() || 'U',
-      amount: Number(amount),
-      issueDate: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
-      status
-    };
-
-    updateInvoices([newInvoice, ...invoices]);
-    setSelectedInvoice(newInvoice);
-    setClientName('');
-    setClientEmail('');
-    setAmount(100);
-    setShowForm(false);
-  };
-
-  const handleDeleteInvoice = (id: string) => {
-    const filtered = invoices.filter(inv => inv.id !== id);
-    updateInvoices(filtered);
-    if (selectedInvoice?.id === id) {
-      setSelectedInvoice(null);
+    try {
+      const created = await invoicesApi.create({ clientName, clientEmail, amount: Number(amount), status });
+      setInvoices((prev) => [created, ...prev]);
+      setSelectedInvoice(created);
+      setClientName('');
+      setClientEmail('');
+      setAmount(100);
+      setShowForm(false);
+    } catch {
+      /* surfaced by the API client */
     }
   };
 
-  const toggleStatus = (id: string, current: 'Paid' | 'Pending' | 'Overdue') => {
+  const handleDeleteInvoice = async (id: string) => {
+    try {
+      await invoicesApi.remove(id);
+      setInvoices((prev) => prev.filter((inv) => inv.id !== id));
+      setSelectedInvoice((sel) => (sel?.id === id ? null : sel));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const toggleStatus = async (id: string, current: 'Paid' | 'Pending' | 'Overdue') => {
     const next: 'Paid' | 'Pending' | 'Overdue' = current === 'Pending' ? 'Paid' : current === 'Paid' ? 'Overdue' : 'Pending';
-    const updated = invoices.map(inv => {
-      if (inv.id === id) {
-        return { ...inv, status: next };
-      }
-      return inv;
-    });
-    updateInvoices(updated);
-    if (selectedInvoice?.id === id) {
-      setSelectedInvoice({ ...selectedInvoice, status: next });
+    try {
+      const updated = await invoicesApi.setStatus(id, next);
+      setInvoices((prev) => prev.map((inv) => (inv.id === id ? updated : inv)));
+      setSelectedInvoice((sel) => (sel?.id === id ? updated : sel));
+    } catch {
+      /* ignore */
     }
   };
 

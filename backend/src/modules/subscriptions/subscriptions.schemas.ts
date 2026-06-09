@@ -10,3 +10,9 @@ export const createSubscriptionSchema = z.object({
 });
 
 export type CreateSubscriptionInput = z.infer<typeof createSubscriptionSchema>;
+
+export const updateSubscriptionSchema = z.object({
+  status: z.enum(['Active', 'Pending', 'Cancelled']),
+});
+
+export type UpdateSubscriptionInput = z.infer<typeof updateSubscriptionSchema>;

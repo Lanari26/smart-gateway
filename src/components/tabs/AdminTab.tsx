@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sliders, 
   Workflow, 
@@ -13,19 +13,34 @@ import {
   Settings2,
   Database
 } from 'lucide-react';
-import { StorageManager } from '../../mockData';
+import { settingsApi } from '../../lib/endpoints';
 
 export default function AdminTab() {
-  // Config States
-  const [feeMarkup, setFeeMarkup] = useState<number>(() => StorageManager.get<number>('admin_markup', 1.5));
-  const [routingPreference, setRoutingPreference] = useState<string>(() => StorageManager.get<string>('admin_routing', 'lowest-cost'));
-  const [simulationSpeed, setSimulationSpeed] = useState<number>(() => StorageManager.get<number>('admin_speed', 1200));
+  // Config States (loaded from the API)
+  const [feeMarkup, setFeeMarkup] = useState<number>(1.5);
+  const [routingPreference, setRoutingPreference] = useState<string>('lowest-cost');
+  const [simulationSpeed, setSimulationSpeed] = useState<number>(1200);
+  const [saved, setSaved] = useState(false);
 
-  const handleSaveConfigs = () => {
-    StorageManager.set('admin_markup', feeMarkup);
-    StorageManager.set('admin_routing', routingPreference);
-    StorageManager.set('admin_speed', simulationSpeed);
-    alert("SmartPay Gateway route configurations have been successfully updated in localized memory!");
+  useEffect(() => {
+    let active = true;
+    settingsApi.get().then((s) => {
+      if (!active) return;
+      setFeeMarkup(s.feeMarkup);
+      setRoutingPreference(s.routingPreference);
+      setSimulationSpeed(s.simulationSpeed);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const handleSaveConfigs = async () => {
+    try {
+      await settingsApi.update({ feeMarkup, routingPreference, simulationSpeed });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      /* surfaced by the API client */
+    }
   };
 
   return (
@@ -140,7 +155,7 @@ export default function AdminTab() {
               onClick={handleSaveConfigs}
               className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition cursor-pointer shadow shadow-indigo-900"
             >
-              Update Routing Configurations
+              {saved ? 'Configurations Saved ✓' : 'Update Routing Configurations'}
             </button>
 
           </div>
