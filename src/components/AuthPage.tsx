@@ -139,12 +139,10 @@ export default function AuthPage({ onNavigate, onAuthed }: AuthPageProps) {
           </div>
         </div>
 
-        {mode === "signin" && (
-          <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-slate-500">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Demo: merchant@smartpay.rw / SmartPay#2026</span>
-          </div>
-        )}
+        <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-slate-500">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Secured by SmartPay · 256-bit encryption</span>
+        </div>
       </div>
     </div>
   );
