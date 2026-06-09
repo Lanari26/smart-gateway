@@ -83,14 +83,20 @@ jobs:
           docker image prune -f
 
           API=http://127.0.0.1:4000
+          healthy=0
           for i in $(seq 1 40); do
-            curl -fsS "$API/api/health" >/dev/null 2>&1 && { echo "API healthy"; break; }
+            curl -fsS "$API/api/health" >/dev/null 2>&1 && { echo "API healthy"; healthy=1; break; }
             echo "waiting for API... ($i)"; sleep 3
           done
+          if [ "$healthy" != "1" ]; then
+            echo "::error::API never became healthy — dumping backend container logs:"
+            docker compose -f docker-compose.prod.yml logs --tail=150 backend || true
+            exit 1
+          fi
 
-          # Smoke test: login as the seeded demo merchant, then hit every resource.
+          # Smoke test: login as the seeded admin, then hit every resource.
           TOKEN=$(curl -fsS -X POST "$API/api/auth/login" -H 'Content-Type: application/json' \
-            -d '{"identifier":"merchant@smartpay.rw","password":"SmartPay#2026"}' \
+            -d '{"identifier":"lanari.rw@gmail.com","password":"lanari@123!"}' \
             | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p')
           [ -n "$TOKEN" ] || { echo "login failed"; exit 1; }
           for ep in transactions plans subscriptions api-keys whitelist invoices dashboard; do
