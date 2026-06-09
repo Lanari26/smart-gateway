@@ -9,43 +9,60 @@ import {
 } from 'lucide-react';
 import { ApiKey, WhitelistedIp } from '../../types';
 import { apiKeysApi, whitelistApi } from '../../lib/endpoints';
+import { apiUrl } from '../../lib/api';
 
-// Live integration snippets for the hosted-checkout payment API. The request
-// shape mirrors the backend's /payments routes (ITECpay-backed).
-const SNIPPETS: { label: string; lang: string; code: string }[] = [
-  {
-    label: 'Request a Mobile Money payment',
-    lang: 'bash',
-    code: `curl -X POST "$API/payments/momo" \\
+// Live integration snippets for the hosted-checkout payment API. The `code`
+// block is a clean, copy-paste-ready curl (real deployed URL, no placeholders)
+// that imports cleanly into Postman / apidog; `response` is the example reply,
+// shown separately so it never ends up inside the copied command.
+function buildSnippets(): { label: string; code: string; response: string }[] {
+  const base = apiUrl(''); // e.g. https://api-pay.lanari.rw/api
+  return [
+    {
+      label: 'Request a Mobile Money payment',
+      code: `curl -X POST "${base}/payments/momo" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "customerName": "Alex Rivera",
-    "customerEmail": "alex@example.com",
-    "phone": "0788000000",
-    "amount": 1000,
-    "note": "invoice-1234"
-  }'
-# → 201 { "transaction": { "reference": "tx_8f9e1a", "status": "pending" }, "accepted": true }`,
-  },
-  {
-    label: 'Poll the payment status',
-    lang: 'bash',
-    code: `# Keep polling until status is "paid" or "failed".
-curl "$API/payments/tx_8f9e1a/status"
-# → { "transaction": { "reference": "tx_8f9e1a", "status": "pending" } }
-# → { "transaction": { "reference": "tx_8f9e1a", "status": "paid" } }`,
-  },
-  {
-    label: 'Generate a hosted card link',
-    lang: 'bash',
-    code: `curl -X POST "$API/payments/card" \\
+  "customerName": "Alex Rivera",
+  "customerEmail": "alex@example.com",
+  "phone": "0788000000",
+  "amount": 1000,
+  "note": "invoice-1234"
+}'`,
+      response: `201 Created
+{
+  "transaction": { "reference": "tx_8f9e1a", "status": "pending", "method": "Mobile Money (MTN)" },
+  "accepted": true
+}`,
+    },
+    {
+      label: 'Poll the payment status',
+      code: `curl "${base}/payments/tx_8f9e1a/status"`,
+      response: `{ "transaction": { "reference": "tx_8f9e1a", "status": "pending" } }
+# repeat the request until status is "paid" or "failed"
+{ "transaction": { "reference": "tx_8f9e1a", "status": "paid" } }`,
+    },
+    {
+      label: 'Generate a hosted card link',
+      code: `curl -X POST "${base}/payments/card" \\
   -H "Content-Type: application/json" \\
-  -d '{ "customerName": "Alex Rivera", "email": "alex@example.com", "amount": 5000 }'
-# → 201 { "link": "https://pay.itecpay.rw/...", "transaction": { "status": "pending" } }`,
-  },
-];
+  -d '{
+  "customerName": "Alex Rivera",
+  "email": "alex@example.com",
+  "amount": 5000
+}'`,
+      response: `201 Created
+{
+  "transaction": { "reference": "tx_2e41c4", "status": "pending", "method": "Card" },
+  "link": "https://pay.itecpay.rw/api/pay/apis/pesapal/index?PCODE=RMUKRM11MEQF1MLI2N7V",
+  "validUntil": "2026-06-09 14:42:27"
+}`,
+    },
+  ];
+}
 
 export default function DevelopersTab() {
+  const SNIPPETS = buildSnippets();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [ips, setIps] = useState<WhitelistedIp[]>([]);
 
@@ -333,9 +350,9 @@ export default function DevelopersTab() {
           </div>
 
           <p className="text-xs text-slate-400">
-            Initiate a charge, then poll its status until it settles. Set
-            <code className="mx-1 px-1.5 py-0.5 rounded bg-slate-950 border border-slate-850 text-indigo-300 font-mono text-[10px]">$API</code>
-            to your API base URL.
+            Initiate a charge, then poll its status until it settles. URLs are
+            pre-filled for this environment — copy a command straight into
+            Postman or apidog.
           </p>
 
           <div className="space-y-4">
@@ -346,19 +363,25 @@ export default function DevelopersTab() {
                   <button
                     type="button"
                     onClick={() => handleCopySnippet(idx, snippet.code)}
-                    className="p-1 rounded hover:bg-slate-850 text-slate-400 hover:text-indigo-400 transition cursor-pointer"
-                    title="Copy snippet"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded hover:bg-slate-850 text-slate-400 hover:text-indigo-400 transition cursor-pointer"
+                    title="Copy curl command"
                   >
                     {copiedSnippet === idx ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <><Check className="w-3.5 h-3.5 text-emerald-400" /><span className="text-[9px] text-emerald-400">Copied</span></>
                     ) : (
-                      <Copy className="w-3.5 h-3.5" />
+                      <><Copy className="w-3.5 h-3.5" /><span className="text-[9px]">Copy</span></>
                     )}
                   </button>
                 </div>
                 <pre className="p-3.5 text-[11px] leading-relaxed font-mono text-slate-300 overflow-x-auto whitespace-pre">
 {snippet.code}
                 </pre>
+                <div className="px-3.5 py-2 border-t border-slate-850/70 bg-slate-950/60">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-slate-500 block mb-1">Example response</span>
+                  <pre className="text-[10px] leading-relaxed font-mono text-slate-500 overflow-x-auto whitespace-pre">
+{snippet.response}
+                  </pre>
+                </div>
               </div>
             ))}
           </div>
