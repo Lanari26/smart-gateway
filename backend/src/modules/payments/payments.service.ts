@@ -92,15 +92,6 @@ export async function createMomoCharge(input: MomoChargeInput, merchantId: strin
   const reqRef = randomUUID();
 
   // Provider takes its cut off the gross; only the remainder is distributable.
-  const feePercent = env.ITECPAY_FEE_PERCENT;
-  const netAmount = Math.round(input.amount * (1 - feePercent / 100));
-  const recipients: RecipientRow[] = (input.recipients ?? []).map((r) => ({
-    phone: r.phone,
-    percent: r.percent,
-    amount: Math.floor((netAmount * r.percent) / 100),
-    status: 'PENDING',
-  }));
-
   const result = await requestMomoPayment({
     amount: input.amount,
     phone: input.phone,
@@ -109,6 +100,19 @@ export async function createMomoCharge(input: MomoChargeInput, merchantId: strin
     note: input.note,
     message: input.message,
   });
+  const accepted = result.ok;
+
+  const feePercent = env.ITECPAY_FEE_PERCENT;
+  const netAmount = Math.round(input.amount * (1 - feePercent / 100));
+  // The split plan; only relevant once the charge is paid. If the gateway
+  // rejected the request outright there will never be a transfer, so mark the
+  // lines SKIPPED rather than leaving them looking PENDING.
+  const recipients: RecipientRow[] = (input.recipients ?? []).map((r) => ({
+    phone: r.phone,
+    percent: r.percent,
+    amount: Math.floor((netAmount * r.percent) / 100),
+    status: accepted ? 'PENDING' : 'SKIPPED',
+  }));
 
   const tx = await prisma.transaction.create({
     data: {
@@ -125,16 +129,22 @@ export async function createMomoCharge(input: MomoChargeInput, merchantId: strin
       feePercent,
       netAmount,
       recipients: recipients as unknown as Prisma.InputJsonValue,
-      // PENDING transfer means "disburse once paid"; NONE means no split.
-      transferStatus: recipients.length ? 'PENDING' : 'NONE',
+      // PENDING transfer means "disburse once paid"; NONE means no split (or the
+      // charge never got off the ground).
+      transferStatus: accepted && recipients.length ? 'PENDING' : 'NONE',
       // Accepted requests sit PENDING until the payer approves; a rejected
       // request is FAILED immediately so the UI stops polling.
-      status: result.ok ? TransactionStatus.PENDING : TransactionStatus.FAILED,
+      status: accepted ? TransactionStatus.PENDING : TransactionStatus.FAILED,
     },
   });
 
-  if (!result.ok) {
-    return { transaction: toDTO(tx), accepted: false, message: result.message ?? 'The gateway rejected the payment request.' };
+  if (!accepted) {
+    console.warn(`[payments] gateway rejected ${tx.reference}:`, JSON.stringify(result.raw));
+    return {
+      transaction: toDTO(tx),
+      accepted: false,
+      message: result.message ? `Gateway: ${result.message}` : 'The gateway rejected the payment request.',
+    };
   }
 
   // Fire-and-forget orchestrator: poll the verify endpoint until the charge
