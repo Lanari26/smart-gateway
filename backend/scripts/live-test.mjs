@@ -35,6 +35,20 @@ const ITEC_BASE = (args.itecBase || process.env.ITECPAY_BASE_URL || 'https://pay
 const PHONE = args.phone || process.env.TEST_PHONE;
 const AMOUNT = Number(args.amount || process.env.TEST_AMOUNT || 100);
 const API_KEY = args.key || process.env.API_KEY; // required in gateway mode
+// Split payout, e.g. --recipients "0788111111:60,0738222222:40"
+const RECIPIENTS = parseRecipients(args.recipients || process.env.RECIPIENTS);
+
+function parseRecipients(spec) {
+  if (!spec || spec === true) return undefined;
+  const list = String(spec)
+    .split(',')
+    .map((part) => {
+      const [phone, percent] = part.split(':');
+      return { phone: phone?.trim(), percent: Number(percent) };
+    })
+    .filter((r) => r.phone && r.percent > 0);
+  return list.length ? list : undefined;
+}
 const PROVIDER = args.provider; // MTN | AIRTEL (optional; auto-detected otherwise)
 const NOTE = args.note || `live-test-${Date.now()}`;
 const INTERVAL = Number(args.interval || 4000);
@@ -101,6 +115,8 @@ async function runGateway() {
   }
   log(`▶ gateway mode  API=${API}  phone=${PHONE}  amount=${AMOUNT} RWF  key=${String(API_KEY).split('_').slice(0, 2).join('_')}_…`);
 
+  if (RECIPIENTS) log(`  split payout: ${RECIPIENTS.map((r) => `${r.phone}=${r.percent}%`).join(', ')}`);
+
   const init = await postJson(
     `${API}/payments/momo`,
     {
@@ -110,6 +126,7 @@ async function runGateway() {
       amount: AMOUNT,
       provider: PROVIDER,
       note: NOTE,
+      recipients: RECIPIENTS,
     },
     { 'X-API-Key': API_KEY },
   );
@@ -130,10 +147,16 @@ async function runGateway() {
   for (let attempt = 1; attempt <= MAX; attempt++) {
     await sleep(INTERVAL);
     const { httpStatus, data } = await getJson(`${API}/payments/${reference}/status`);
-    const status = data?.transaction?.status;
-    log(`    [${attempt}/${MAX}] http=${httpStatus} status=${status}`);
-    if (status === 'paid') return done(true, { reference, status: 'SUCCESSFUL', transaction: data.transaction });
-    if (status === 'failed') return done(false, { reference, status: 'FAILED', transaction: data.transaction });
+    const t = data?.transaction ?? {};
+    log(`    [${attempt}/${MAX}] http=${httpStatus} status=${t.status} transfer=${t.transferStatus ?? '-'}  ${t.message ?? ''}`);
+
+    if (t.status === 'failed') return done(false, { reference, status: 'FAILED', transaction: t });
+    if (t.status === 'paid') {
+      // Wait for any auto-transfer to finish before reporting.
+      if (t.transferStatus === 'PENDING' || t.transferStatus === 'PROCESSING') continue;
+      const ok = t.transferStatus === 'SUCCESSFUL' || t.transferStatus === 'NONE' || !t.transferStatus;
+      return done(ok, { reference, status: 'PAID', transferStatus: t.transferStatus, transaction: t });
+    }
   }
   done(false, { reference, status: 'TIMED_OUT' });
 }

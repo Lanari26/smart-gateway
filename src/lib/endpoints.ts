@@ -69,6 +69,9 @@ export const paymentsApi = {
       provider?: "MTN" | "AIRTEL";
       note?: string;
       message?: string;
+      // Optional split payout: each number receives `percent` of the net
+      // (amount minus the provider fee) once the charge settles.
+      recipients?: { phone: string; percent: number }[];
     },
     apiKey: string,
   ) =>

@@ -120,6 +120,17 @@ settles; the frontend (and any client) also polls `GET /payments/:reference/stat
 which performs a live verify and persists the result — so the status converges
 to `paid`/`failed` from either side.
 
+**Split payout (auto-transfer):** the MoMo request body may include
+`recipients: [{ phone, percent }]`. The provider takes a fee off the gross
+(`ITECPAY_FEE_PERCENT`, default **4%**), so the distributable net is
+`amount × 0.96`. When the charge settles **SUCCESSFUL**, the backend
+automatically transfers each recipient its `percent × net` via the transfer
+endpoint (`/api/transfer`), then the status reports `transferStatus`
+(`SUCCESSFUL`/`PARTIAL`/`FAILED`) and a combined message
+("Payment successful, transfer successful."). Disbursement is idempotent — an
+atomic claim guarantees transfers never fire twice. Percentages must sum to
+≤ 100 (any remainder stays in the merchant's ITECpay balance).
+
 ### Live test
 
 `backend/scripts/live-test.mjs` runs the full request→poll→settle lifecycle
@@ -128,6 +139,10 @@ against live services (no mocks). Run it **on the server**:
 ```bash
 # Through our deployed API (needs an API key — mint one in the Developers tab):
 node backend/scripts/live-test.mjs --phone 0788000000 --amount 100 --key sk_test_xxx
+
+# With a split payout (waits for the auto-transfer to settle too):
+node backend/scripts/live-test.mjs --phone 0788000000 --amount 1000 --key sk_test_xxx \
+  --recipients "0788111111:60,0738222222:40"
 
 # Straight against ITECpay (validates keys + request body in isolation, no key):
 node backend/scripts/live-test.mjs --mode direct --phone 0788000000 --amount 100

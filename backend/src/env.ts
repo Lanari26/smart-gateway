@@ -35,6 +35,10 @@ const schema = z.object({
   // (the charge stays PENDING — the customer simply never approved).
   ITECPAY_POLL_INTERVAL_MS: z.coerce.number().default(4000),
   ITECPAY_POLL_MAX_ATTEMPTS: z.coerce.number().default(45),
+
+  // Provider cut taken off every collection. The distributable (transferable)
+  // amount is amount − this %. Defaults to 4%.
+  ITECPAY_FEE_PERCENT: z.coerce.number().min(0).max(100).default(4),
 });
 
 const parsed = schema.safeParse(process.env);

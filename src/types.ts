@@ -8,6 +8,15 @@ export type ConsoleTab =
   | 'invoices'
   | 'admin';
 
+export interface TransferRecipient {
+  phone: string;
+  percent: number;
+  amount: number;
+  status: 'PENDING' | 'SUCCESSFUL' | 'FAILED' | 'SKIPPED';
+  transId?: string;
+  message?: string;
+}
+
 export interface Transaction {
   id: string;
   reference?: string;
@@ -19,6 +28,12 @@ export interface Transaction {
   amount: number;
   method: string;
   provider?: string | null;
+  // Split-payout fields (present on gateway charges).
+  feePercent?: number | null;
+  netAmount?: number | null;
+  transferStatus?: 'NONE' | 'PENDING' | 'PROCESSING' | 'SUCCESSFUL' | 'PARTIAL' | 'FAILED' | null;
+  recipients?: TransferRecipient[] | null;
+  message?: string;
   date: string;
 }
 

@@ -99,6 +99,30 @@ export async function checkMomoStatus(reqRef: string, provider: MomoProvider): P
   return { status, transactionId: data?.data?.transaction_id, raw: data };
 }
 
+// ── 1.3  Transfer / cashout (disburse to a wallet) ───────────────────────────
+export interface TransferResult {
+  ok: boolean;
+  transId?: string;
+  message?: string;
+  raw: unknown;
+}
+
+export async function requestTransfer(args: { amount: number; phone: string; provider: MomoProvider }): Promise<TransferResult> {
+  const { httpStatus, data } = await postJson('/api/transfer', {
+    amount: args.amount,
+    phone: args.phone,
+    key: KEY[args.provider],
+  });
+
+  const ok = (data?.status ?? httpStatus) === 200;
+  return {
+    ok,
+    transId: data?.data?.transID ?? data?.data?.transaction_id,
+    message: data?.data?.message ?? data?.message,
+    raw: data,
+  };
+}
+
 // ── Card payment (hosted link) ───────────────────────────────────────────────
 export interface CardRequestResult {
   ok: boolean;

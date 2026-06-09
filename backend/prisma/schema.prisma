@@ -101,6 +101,13 @@ model Transaction {
   providerRef   String? // req_ref / PCODE sent to ITECpay (unique per charge)
   providerTxnId String? // transID returned by ITECpay
 
+  // Split payout: after the charge settles, net (amount − provider fee) is
+  // disbursed to the recipients by percentage via the transfer endpoint.
+  feePercent     Float?  // provider cut applied to the gross amount (e.g. 4)
+  netAmount      Float?  // amount − fee; the distributable pool
+  transferStatus String? // null | NONE | PENDING | PROCESSING | SUCCESSFUL | PARTIAL | FAILED
+  recipients     Json?   // [{ phone, percent, amount, status, transId }]
+
   createdAt     DateTime          @default(now())
 
   @@index([status])

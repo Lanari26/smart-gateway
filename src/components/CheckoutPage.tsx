@@ -372,7 +372,7 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
             <div className="space-y-1.5">
               <span className="text-xs uppercase font-mono text-emerald-400 font-bold tracking-widest">PAYMENT CONFIRMED</span>
               <h2 className="text-2xl font-display font-semibold text-white">Payment Successful</h2>
-              <p className="text-slate-400 text-xs">The charge has settled and been recorded in the merchant ledger.</p>
+              <p className="text-slate-400 text-xs">{receipt.message || 'The charge has settled and been recorded in the merchant ledger.'}</p>
             </div>
             <div className="bg-slate-950 p-5 rounded-2xl border border-slate-850/60 text-left space-y-3 font-mono text-xs">
               <Row label="Reference" value={receipt.reference || receipt.id} />

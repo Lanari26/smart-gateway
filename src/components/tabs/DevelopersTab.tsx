@@ -19,7 +19,7 @@ function buildSnippets(): { label: string; code: string; response: string }[] {
   const base = apiUrl(''); // e.g. https://api-pay.lanari.rw/api
   return [
     {
-      label: 'Request a Mobile Money payment',
+      label: 'Request a Mobile Money payment (with split payout)',
       code: `curl -X POST "${base}/payments/momo" \\
   -H "Content-Type: application/json" \\
   -H "X-API-Key: sk_test_your_secret_key" \\
@@ -28,20 +28,27 @@ function buildSnippets(): { label: string; code: string; response: string }[] {
   "customerEmail": "alex@example.com",
   "phone": "0788000000",
   "amount": 1000,
-  "note": "invoice-1234"
+  "note": "invoice-1234",
+  "recipients": [
+    { "phone": "0788111111", "percent": 60 },
+    { "phone": "0738222222", "percent": 40 }
+  ]
 }'`,
-      response: `201 Created
-{
-  "transaction": { "reference": "tx_8f9e1a", "status": "pending", "method": "Mobile Money (MTN)" },
-  "accepted": true
-}`,
+      response: `201 Created  { "transaction": { "reference": "tx_8f9e1a", "status": "pending" }, "accepted": true }
+
+# The gateway takes 4% off the gross, so net = 1000 - 4% = 960 RWF.
+# Once the charge is approved, 60% (576) and 40% (384) are transferred
+# automatically to the two numbers. Poll the status to watch it settle.`,
     },
     {
-      label: 'Poll the payment status',
+      label: 'Poll the payment + transfer status',
       code: `curl "${base}/payments/tx_8f9e1a/status"`,
-      response: `{ "transaction": { "reference": "tx_8f9e1a", "status": "pending" } }
-# repeat the request until status is "paid" or "failed"
-{ "transaction": { "reference": "tx_8f9e1a", "status": "paid" } }`,
+      response: `{ "transaction": { "status": "pending", "transferStatus": "PENDING",
+  "message": "Payment pending — awaiting approval." } }
+# repeat until paid + transfer done:
+{ "transaction": { "status": "paid", "transferStatus": "SUCCESSFUL",
+  "netAmount": 960, "recipients": [ { "phone": "0788111111", "amount": 576, "status": "SUCCESSFUL" }, … ],
+  "message": "Payment successful, transfer successful." } }`,
     },
     {
       label: 'Generate a hosted card link',
