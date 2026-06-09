@@ -28,6 +28,20 @@ async function main() {
     },
   });
 
+  // Primary admin — created (and password re-enforced) on every boot.
+  const adminHash = await bcrypt.hash('lanari@123!', 12);
+  await prisma.merchant.upsert({
+    where: { email: 'lanari.rw@gmail.com' },
+    update: { passwordHash: adminHash, role: Role.ADMIN },
+    create: {
+      email: 'lanari.rw@gmail.com',
+      name: 'Lanari Admin',
+      businessName: 'Lanari Tech',
+      role: Role.ADMIN,
+      passwordHash: adminHash,
+    },
+  });
+
   // Transactions (unique on reference).
   const transactions = [
     { reference: 'tx_8f9e1a', customerName: 'Sarah Connor', customerEmail: 'sarah.c@cyberdyne.org', amount: 149.0, method: 'Visa •••• 4242', status: TransactionStatus.PAID },
