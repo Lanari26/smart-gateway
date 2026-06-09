@@ -54,6 +54,39 @@ export const transactionsApi = {
     apiRequest<{ transaction: Transaction }>(`/transactions/${id}/refund`, { method: "POST" }).then((r) => r.transaction),
 };
 
+// ── Payments (hosted checkout — ITECpay gateway, no auth) ──────────────────
+export const paymentsApi = {
+  // Initiate a Mobile Money charge. Returns a PENDING transaction; the payer
+  // approves on their handset. `accepted: false` means the gateway rejected it.
+  momo: (input: {
+    customerName: string;
+    customerEmail: string;
+    phone: string;
+    amount: number;
+    provider?: "MTN" | "AIRTEL";
+    note?: string;
+    message?: string;
+  }) =>
+    apiRequest<{ transaction: Transaction; accepted: boolean; message?: string }>("/payments/momo", {
+      method: "POST",
+      body: input,
+      auth: false,
+    }),
+  // Poll a charge — performs a live verify against the gateway and returns the
+  // up-to-date transaction (status: pending | paid | failed).
+  status: (reference: string) =>
+    apiRequest<{ transaction: Transaction }>(`/payments/${reference}/status`, { auth: false }).then(
+      (r) => r.transaction,
+    ),
+  // Generate a hosted card-payment link.
+  card: (input: { customerName: string; email: string; amount: number }) =>
+    apiRequest<{ transaction: Transaction; link: string; validUntil?: string }>("/payments/card", {
+      method: "POST",
+      body: input,
+      auth: false,
+    }),
+};
+
 // ── Plans ────────────────────────────────────────────────────────────────
 export const plansApi = {
   list: () => apiRequest<{ plans: BillingPlan[] }>("/plans").then((r) => r.plans),

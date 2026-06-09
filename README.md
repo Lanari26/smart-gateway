@@ -4,6 +4,12 @@ A payment-gateway console: a marketing landing page, a hosted checkout, and a
 full merchant **console** (dashboard, projects, billing, developers, invoices,
 admin) backed by a real REST API.
 
+Payments are processed live through the **ITECpay** gateway
+(`https://pay.itecpay.rw`): a Mobile Money charge is requested, then its status
+is polled automatically until it settles **SUCCESSFUL** or **FAILED**. Card
+payments are handled via a hosted payment link. See `Credentials.md` for the
+upstream API contract.
+
 - **Frontend** — React 19 + Vite + Tailwind, served by a small Express host.
 - **Backend** — Express + Prisma + PostgreSQL with JWT auth.
 - **Deploy** — Docker Compose, fronted by CloudPanel/Nginx on two domains:
@@ -14,13 +20,15 @@ admin) backed by a real REST API.
 smartpay-gateway/
 ├── src/                  # frontend (React)
 │   └── lib/              # API client (api.ts, endpoints.ts)
-├── server.ts             # Express host for the frontend + AI sandbox
+├── server.ts             # Express host for the frontend
 ├── backend/              # REST API (Express + Prisma + Postgres)
 │   ├── src/
-│   │   ├── modules/      # auth, transactions, plans, subscriptions,
-│   │   │                 #   api-keys, whitelist, invoices, dashboard, health
+│   │   ├── modules/      # auth, transactions, payments (ITECpay), plans,
+│   │   │                 #   subscriptions, api-keys, whitelist, invoices,
+│   │   │                 #   dashboard, health
 │   │   ├── middleware/   # auth, validate, error
 │   │   └── lib/          # prisma, http-error, password, format
+│   ├── scripts/          # live-test.mjs — end-to-end gateway test
 │   └── prisma/           # schema.prisma + seed.ts
 ├── Dockerfile            # frontend image
 ├── docker-compose.yml        # local development
@@ -72,12 +80,54 @@ requires a `Bearer` access token.
 | GET    | `/auth/me`                    | Current merchant                 |
 | GET/POST | `/transactions`             | List / create a charge           |
 | POST   | `/transactions/:id/refund`    | Refund a charge                  |
+| POST   | `/payments/momo`              | Request a Mobile Money charge *(public)* |
+| GET    | `/payments/:reference/status` | Poll a charge (live verify) *(public)* |
+| POST   | `/payments/card`              | Generate a hosted card link *(public)* |
 | GET/POST/DELETE | `/plans`             | Billing plans                    |
 | GET/POST | `/subscriptions`            | Subscriptions (+ `/:id/cancel`)  |
 | GET/POST/DELETE | `/api-keys`          | Developer API keys               |
 | GET/POST/DELETE | `/whitelist`         | Whitelisted IPs                  |
 | GET/POST | `/invoices`                 | Invoices (+ `/:id/pay`)          |
 | GET    | `/dashboard`                  | Aggregated console metrics       |
+
+## Payments (ITECpay)
+
+The backend ships with the project's registered provider keys as defaults, so
+checkout works out of the box. Override per-environment via env vars (root
+`.env` for Docker, `backend/.env` for local):
+
+```
+ITECPAY_BASE_URL=https://pay.itecpay.rw
+ITECPAY_KEY_MTN=...
+ITECPAY_KEY_AIRTEL=...        # network auto-detected from the phone (072/073 → Airtel)
+ITECPAY_KEY_CARD=...
+ITECPAY_POLL_INTERVAL_MS=4000 # status-poll cadence
+ITECPAY_POLL_MAX_ATTEMPTS=45  # give up after ~3 min (charge stays PENDING)
+```
+
+**Flow:** `POST /payments/momo` requests the charge and returns a `pending`
+transaction. The backend then polls ITECpay's verify endpoint until the charge
+settles; the frontend (and any client) also polls `GET /payments/:reference/status`,
+which performs a live verify and persists the result — so the status converges
+to `paid`/`failed` from either side.
+
+### Live test
+
+`backend/scripts/live-test.mjs` runs the full request→poll→settle lifecycle
+against live services (no mocks). Run it **on the server**:
+
+```bash
+# Through our deployed API (default API=http://127.0.0.1:4000/api):
+node backend/scripts/live-test.mjs --phone 0788000000 --amount 100
+
+# Straight against ITECpay (validates keys + request body in isolation):
+node backend/scripts/live-test.mjs --mode direct --phone 0788000000 --amount 100
+```
+
+Approve the Mobile Money prompt on the handset; the script exits `0` only when
+the status reaches **SUCCESSFUL**. Each backend deploy also runs non-charging
+live checks (validation, 404, and a real ITECpay card-link generation) as part
+of the CI smoke test.
 
 ## Production deploy (CloudPanel)
 

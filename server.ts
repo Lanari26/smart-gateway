@@ -1,61 +1,19 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Initialize the Google GenAI SDK client
-let ai: GoogleGenAI | null = null;
-if (process.env.GEMINI_API_KEY) {
-  ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
-    }
-  });
-}
-
+// Lightweight Express host for the SmartPay Gateway frontend. In development it
+// proxies through Vite for HMR; in production it serves the built SPA. All
+// payment/business logic lives in the backend API (see backend/).
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Middleware for body parsing
   app.use(express.json());
 
-  // API Route: AI Developer Assistant and API Payload Generation
-  app.post("/api/ai/sandbox", async (req, res) => {
-    try {
-      const { prompt, systemInstruction } = req.body;
-      if (!prompt) {
-        return res.status(400).json({ error: "Prompt is required" });
-      }
-
-      if (!ai) {
-        return res.status(503).json({ 
-          error: "Gemini API Client is not initialized. Please verify that your GEMINI_API_KEY environment variable is configured in the Secrets pane." 
-        });
-      }
-
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: systemInstruction || "You are an elite, helpful AI Assistant integrated directly into the 'SmartPay Gateway' Developer Dashboard. You assist merchants and developers in designing perfect REST API commands, debugging payloads, creating test webhooks, and understanding payment standards (such as ISO 8583, card format compliance, and sandbox token configurations). Keep your code samples elegant, using curl and typescript.",
-        }
-      });
-
-      res.json({ text: response.text });
-    } catch (error: any) {
-      console.error("AI Assistant Sandbox Error:", error);
-      res.status(500).json({ error: error?.message || "An error occurred with the AI model request. Please retry." });
-    }
-  });
-
-  // Vite middleware integration for dynamic hot reloading in development, or static serving in production
   if (process.env.NODE_ENV !== "production") {
     console.log("Starting server in DEVELOPMENT mode with dynamic Vite middleware...");
     const vite = await createViteServer({

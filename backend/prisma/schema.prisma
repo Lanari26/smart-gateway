@@ -88,6 +88,13 @@ model Transaction {
   currency      String            @default("RWF")
   method        String
   status        TransactionStatus @default(PENDING)
+
+  // ITECpay gateway linkage (null for manually-recorded ledger entries).
+  phone         String? // payer MSISDN for mobile-money charges
+  provider      String? // MTN | AIRTEL | CARD
+  providerRef   String? @unique // req_ref / PCODE sent to ITECpay
+  providerTxnId String? // transID returned by ITECpay
+
   createdAt     DateTime          @default(now())
 
   @@index([status])

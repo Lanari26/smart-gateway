@@ -1,6 +1,6 @@
 # SmartPay Gateway — frontend image.
-# Builds the Vite SPA + the small Express host (server.ts) that serves it and
-# proxies the AI sandbox. Served on :3000 (CloudPanel fronts pay.lanari.rw).
+# Builds the Vite SPA + the small Express host (server.ts) that serves it.
+# Served on :3000 (CloudPanel fronts pay.lanari.rw).
 
 # ---- build ----
 FROM node:20-alpine AS build

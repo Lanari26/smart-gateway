@@ -43,6 +43,12 @@ services:
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://pay.lanari.rw}
+      ITECPAY_BASE_URL: ${ITECPAY_BASE_URL:-}
+      ITECPAY_KEY_MTN: ${ITECPAY_KEY_MTN:-}
+      ITECPAY_KEY_AIRTEL: ${ITECPAY_KEY_AIRTEL:-}
+      ITECPAY_KEY_CARD: ${ITECPAY_KEY_CARD:-}
+      ITECPAY_POLL_INTERVAL_MS: ${ITECPAY_POLL_INTERVAL_MS:-4000}
+      ITECPAY_POLL_MAX_ATTEMPTS: ${ITECPAY_POLL_MAX_ATTEMPTS:-45}
     ports:
       - "127.0.0.1:${API_PORT:-4000}:4000"
 
@@ -57,7 +63,6 @@ services:
       - backend
     environment:
       NODE_ENV: production
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
 

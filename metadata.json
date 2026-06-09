@@ -1,8 +1,6 @@
 {
   "name": "SmartPay Gateway",
-  "description": "A high-fidelity modern dashboard and payment gateway console including a landing page, developer API references, subscription billing admin, invoices tracking, and secure payment checkout checkout portal.",
+  "description": "A modern payment-gateway console: a marketing landing page, a hosted Mobile Money & card checkout backed by the ITECpay gateway, plus a full merchant console (dashboard, projects, billing, developers, invoices, admin).",
   "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "majorCapabilities": []
 }

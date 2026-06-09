@@ -10,6 +10,7 @@ export type ConsoleTab =
 
 export interface Transaction {
   id: string;
+  reference?: string;
   customerName: string;
   customerEmail: string;
   avatarLetter: string;
@@ -17,6 +18,7 @@ export interface Transaction {
   status: 'paid' | 'pending' | 'failed';
   amount: number;
   method: string;
+  provider?: string | null;
   date: string;
 }
 
