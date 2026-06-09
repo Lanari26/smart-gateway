@@ -36,6 +36,13 @@ const schema = z.object({
   ITECPAY_POLL_INTERVAL_MS: z.coerce.number().default(4000),
   ITECPAY_POLL_MAX_ATTEMPTS: z.coerce.number().default(45),
 
+  // How long POST /payments/momo blocks waiting for the payer to approve the
+  // USSD prompt before returning. Kept under the typical 60s reverse-proxy
+  // read timeout; if approval takes longer the response comes back `pending`
+  // and the caller polls /payments/:reference/status (the background poller
+  // keeps settling regardless).
+  ITECPAY_SYNC_WAIT_MS: z.coerce.number().default(50000),
+
   // Provider cut taken off every collection. The distributable (transferable)
   // amount is amount − this %. Defaults to 4%.
   ITECPAY_FEE_PERCENT: z.coerce.number().min(0).max(100).default(4),

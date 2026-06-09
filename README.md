@@ -114,11 +114,14 @@ so in the console a **MERCHANT sees only its own** transactions/metrics while an
 **ADMIN sees all**. Keys are minted in the Developers tab. Status polling stays
 public (keyed only by the opaque transaction reference).
 
-**Flow:** `POST /payments/momo` requests the charge and returns a `pending`
-transaction. The backend then polls ITECpay's verify endpoint until the charge
-settles; the frontend (and any client) also polls `GET /payments/:reference/status`,
-which performs a live verify and persists the result — so the status converges
-to `paid`/`failed` from either side.
+**Flow:** `POST /payments/momo` requests the charge, then **waits** (up to
+`ITECPAY_SYNC_WAIT_MS`, default 50s — under the typical 60s proxy read timeout)
+for the payer to approve the USSD prompt, returning the final outcome
+(`status` + `transferStatus` + `settled`) in that one response. A background
+poller settles the ledger regardless, so if approval is slower than the wait
+window the response comes back `pending`/`settled:false` and the caller polls
+`GET /payments/:reference/status` (a live verify that also persists) until it
+converges to `paid`/`failed`.
 
 **Split payout (auto-transfer):** the MoMo request body may include
 `recipients: [{ phone, percent }]`. The provider takes a fee off the gross

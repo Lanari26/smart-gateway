@@ -34,14 +34,21 @@ function buildSnippets(): { label: string; code: string; response: string }[] {
     { "phone": "0738222222", "percent": 40 }
   ]
 }'`,
-      response: `201 Created  { "transaction": { "reference": "tx_8f9e1a", "status": "pending" }, "accepted": true }
-
-# The gateway takes 4% off the gross, so net = 1000 - 4% = 960 RWF.
-# Once the charge is approved, 60% (576) and 40% (384) are transferred
-# automatically to the two numbers. Poll the status to watch it settle.`,
+      response: `# Waits for the payer to approve the USSD prompt, then returns the final
+# outcome. 4% is taken off the gross (net = 1000 - 4% = 960), and on success
+# 60% (576) / 40% (384) are auto-transferred to the two numbers.
+201 Created
+{
+  "transaction": { "reference": "tx_8f9e1a", "status": "paid", "transferStatus": "SUCCESSFUL",
+    "netAmount": 960, "message": "Payment successful, transfer successful." },
+  "accepted": true,
+  "settled": true
+}
+# If approval is slower than the wait window: status "pending", settled false —
+# poll the status endpoint below until it settles.`,
     },
     {
-      label: 'Poll the payment + transfer status',
+      label: 'Poll the payment + transfer status (fallback)',
       code: `curl "${base}/payments/tx_8f9e1a/status"`,
       response: `{ "transaction": { "status": "pending", "transferStatus": "PENDING",
   "message": "Payment pending — awaiting approval." } }

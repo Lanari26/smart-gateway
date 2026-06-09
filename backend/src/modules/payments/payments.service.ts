@@ -147,12 +147,40 @@ export async function createMomoCharge(input: MomoChargeInput, merchantId: strin
     };
   }
 
-  // Fire-and-forget orchestrator: poll the verify endpoint until the charge
-  // settles, then disburse to the recipients. The status endpoint mirrors this
-  // so progress is visible even if this process restarts.
+  // Background orchestrator: poll the verify endpoint until the charge settles,
+  // then disburse to the recipients. Runs regardless of whether the caller
+  // waits, so the ledger settles even if the request is abandoned or times out.
   void startStatusPolling(reqRef, provider);
 
-  return { transaction: toDTO(tx), accepted: true };
+  // Wait (up to the sync budget) for the payer to approve the USSD prompt so we
+  // can return the final outcome — payment + transfer — in this one response.
+  const settled = await waitForSettlement(tx.reference);
+  return {
+    transaction: toDTO(settled),
+    accepted: true,
+    settled: isSettled(settled),
+  };
+}
+
+/** A charge is fully settled once payment is terminal and any split has run. */
+function isSettled(t: Transaction): boolean {
+  if (t.status === TransactionStatus.FAILED) return true;
+  if (t.status !== TransactionStatus.PAID) return false;
+  return t.transferStatus !== 'PENDING' && t.transferStatus !== 'PROCESSING';
+}
+
+/**
+ * Poll our own row (driven by the background orchestrator) until the charge is
+ * settled or the sync budget elapses. Returns the latest state either way.
+ */
+async function waitForSettlement(reference: string): Promise<Transaction> {
+  const attempts = Math.max(1, Math.ceil(env.ITECPAY_SYNC_WAIT_MS / env.ITECPAY_POLL_INTERVAL_MS));
+  let tx = (await prisma.transaction.findUnique({ where: { reference } }))!;
+  for (let i = 0; i < attempts && !isSettled(tx); i++) {
+    await delay(env.ITECPAY_POLL_INTERVAL_MS);
+    tx = (await prisma.transaction.findUnique({ where: { reference } }))!;
+  }
+  return tx;
 }
 
 // ── Status: live verify against ITECpay, persisted idempotently ───────────────

@@ -128,8 +128,20 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
         setPaymentState('failed');
         return;
       }
-      setReference(res.transaction.reference ?? null);
-      setReceipt(res.transaction);
+      const txn = res.transaction;
+      setReceipt(txn);
+      setReference(txn.reference ?? null);
+      // The request waits for approval, so the outcome is usually final already.
+      if (txn.status === 'paid') {
+        setPaymentState('success');
+        return;
+      }
+      if (txn.status === 'failed') {
+        setStatusMessage(txn.message || 'The payment was declined or cancelled by the payer.');
+        setPaymentState('failed');
+        return;
+      }
+      // Still pending (approval slower than the sync window) — keep polling.
       setStatusMessage('Approve the Mobile Money prompt on your phone (enter your PIN).');
       setPaymentState('processing');
     } catch (err) {
