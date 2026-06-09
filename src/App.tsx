@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ActiveScreen } from './types';
 import LandingPage from './components/LandingPage';
 import CheckoutPage from './components/CheckoutPage';
@@ -29,6 +29,19 @@ export default function App() {
     }
     setActiveScreen(screen);
   };
+
+  // Persist the current screen in the URL so a refresh restores it instead of
+  // dropping back to the landing page. Other params (e.g. checkout ?key=) are
+  // preserved.
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.set('screen', activeScreen);
+      window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+    } catch {
+      /* ignore */
+    }
+  }, [activeScreen]);
 
   if (loading) {
     return (
