@@ -92,12 +92,13 @@ model Transaction {
   // ITECpay gateway linkage (null for manually-recorded ledger entries).
   phone         String? // payer MSISDN for mobile-money charges
   provider      String? // MTN | AIRTEL | CARD
-  providerRef   String? @unique // req_ref / PCODE sent to ITECpay
+  providerRef   String? // req_ref / PCODE sent to ITECpay (unique per charge)
   providerTxnId String? // transID returned by ITECpay
 
   createdAt     DateTime          @default(now())
 
   @@index([status])
+  @@index([providerRef])
 }
 
 model Plan {
