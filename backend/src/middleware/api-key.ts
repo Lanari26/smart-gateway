@@ -21,14 +21,20 @@ declare global {
  * are rejected so every charge is attributable.
  */
 export async function authenticateApiKey(req: Request, _res: Response, next: NextFunction) {
-  const token = extractKey(req);
-  if (!token) throw HttpError.unauthorized('Missing API key. Send it as the X-API-Key header.');
+  // Async middleware: Express 4 doesn't catch rejected promises, so forward
+  // errors explicitly via next(err) rather than throwing.
+  try {
+    const token = extractKey(req);
+    if (!token) throw HttpError.unauthorized('Missing API key. Send it as the X-API-Key header.');
 
-  const key = await prisma.apiKey.findUnique({ where: { token } });
-  if (!key) throw HttpError.unauthorized('Invalid API key.');
+    const key = await prisma.apiKey.findUnique({ where: { token } });
+    if (!key) throw HttpError.unauthorized('Invalid API key.');
 
-  req.apiKey = { id: key.id, merchantId: key.merchantId, type: key.type };
-  next();
+    req.apiKey = { id: key.id, merchantId: key.merchantId, type: key.type };
+    next();
+  } catch (err) {
+    next(err);
+  }
 }
 
 function extractKey(req: Request): string | null {
