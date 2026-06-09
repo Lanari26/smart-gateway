@@ -64,6 +64,7 @@ model Merchant {
 
   refreshTokens RefreshToken[]
   apiKeys       ApiKey[]
+  transactions  Transaction[]
 
   @@index([role])
 }
@@ -89,6 +90,11 @@ model Transaction {
   method        String
   status        TransactionStatus @default(PENDING)
 
+  // Owning merchant — resolved from the API key that created the charge.
+  // Null only for legacy rows created before attribution existed.
+  merchant   Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+  merchantId String?
+
   // ITECpay gateway linkage (null for manually-recorded ledger entries).
   phone         String? // payer MSISDN for mobile-money charges
   provider      String? // MTN | AIRTEL | CARD
@@ -99,6 +105,7 @@ model Transaction {
 
   @@index([status])
   @@index([providerRef])
+  @@index([merchantId])
 }
 
 model Plan {

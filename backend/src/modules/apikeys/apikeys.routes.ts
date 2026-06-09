@@ -11,8 +11,8 @@ apiKeysRouter.use(authenticate);
 
 apiKeysRouter.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    res.json({ apiKeys: await service.listApiKeys() });
+  asyncHandler(async (req, res) => {
+    res.json({ apiKeys: await service.listApiKeys(req.user!) });
   }),
 );
 
@@ -27,7 +27,7 @@ apiKeysRouter.post(
 apiKeysRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
-    await service.deleteApiKey(req.params.id);
+    await service.deleteApiKey(req.params.id, req.user!);
     res.status(204).end();
   }),
 );

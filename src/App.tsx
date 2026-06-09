@@ -8,7 +8,18 @@ import { useAuth } from './context/AuthContext';
 
 export default function App() {
   const { user, loading } = useAuth();
-  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('landing');
+  // Allow deep links, e.g. a hosted-checkout URL: /?screen=checkout&key=pk_…
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>(() => {
+    try {
+      const s = new URLSearchParams(window.location.search).get('screen');
+      if (s === 'checkout' || s === 'console' || s === 'auth' || s === 'landing') {
+        return s as ActiveScreen;
+      }
+    } catch {
+      /* ignore */
+    }
+    return 'landing';
+  });
 
   // Navigation that gates the console behind authentication.
   const navigate = (screen: ActiveScreen) => {

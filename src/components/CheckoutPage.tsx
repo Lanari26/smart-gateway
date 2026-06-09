@@ -27,6 +27,16 @@ const POLL_MAX_ATTEMPTS = 45; // ~3 minutes before we stop watching.
 export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   const [method, setMethod] = useState<Method>('momo');
 
+  // A hosted checkout is opened with the merchant's publishable key in the link
+  // (pay.lanari.rw/?screen=checkout&key=pk_live_…). Falls back to a manual field.
+  const [apiKey, setApiKey] = useState<string>(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('key')?.trim() || '';
+    } catch {
+      return '';
+    }
+  });
+
   // Shared fields
   const [amount, setAmount] = useState<number>(Math.round(INITIAL_BILLING_PLANS[1]?.price ?? 1000));
   const [name, setName] = useState('');
@@ -104,11 +114,15 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   const handleMomoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || amount <= 0) return;
+    if (!apiKey) {
+      setStatusMessage('An API key is required. Open this checkout via a link that includes ?key=pk_… or paste a key below.');
+      return;
+    }
     setSubmitting(true);
     setStatusMessage('');
 
     try {
-      const res = await paymentsApi.momo({ customerName: name, customerEmail: email, phone, amount, note: note || undefined });
+      const res = await paymentsApi.momo({ customerName: name, customerEmail: email, phone, amount, note: note || undefined }, apiKey);
       if (!res.accepted) {
         setStatusMessage(res.message || 'The gateway rejected the payment request. Check the number and try again.');
         setPaymentState('failed');
@@ -129,11 +143,15 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
   const handleCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || amount <= 0) return;
+    if (!apiKey) {
+      setStatusMessage('An API key is required. Open this checkout via a link that includes ?key=pk_… or paste a key below.');
+      return;
+    }
     setSubmitting(true);
     setStatusMessage('');
 
     try {
-      const res = await paymentsApi.card({ customerName: name, email, amount });
+      const res = await paymentsApi.card({ customerName: name, email, amount }, apiKey);
       // Hand off to the hosted card page to complete the payment.
       window.location.href = res.link;
     } catch (err) {
@@ -249,6 +267,21 @@ export default function CheckoutPage({ onNavigate }: CheckoutPageProps) {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500 transition font-mono"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-medium text-slate-400 block mb-1">
+                  API Key <span className="text-slate-600">(pk_… publishable, or sk_… secret)</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="pk_live_… — from the merchant's Developers tab"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value.trim())}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500 transition font-mono"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Identifies the merchant; the charge is recorded under this key's owner.</p>
               </div>
 
               {method === 'momo' && (

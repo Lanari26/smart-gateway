@@ -13,11 +13,15 @@
 //                       Useful to confirm the keys / request body in isolation.
 //
 // Usage (run on the server):
-//   node backend/scripts/live-test.mjs --phone 0788000000 --amount 100
+//   node backend/scripts/live-test.mjs --phone 0788000000 --amount 100 --key sk_test_xxx
 //   node backend/scripts/live-test.mjs --mode direct --phone 0788000000 --amount 100
-//   API=https://api-pay.lanari.rw/api node backend/scripts/live-test.mjs --phone 07...
+//   API=https://api-pay.lanari.rw/api API_KEY=sk_... node backend/scripts/live-test.mjs --phone 07...
 //
-// Flags: --mode --api --phone --amount --provider --note --interval --max --json
+// gateway mode needs --key (or API_KEY env) — the /payments endpoints require an
+// API key; mint one in the console Developers tab. direct mode talks to ITECpay
+// itself and uses the provider keys instead.
+//
+// Flags: --mode --api --key --phone --amount --provider --note --interval --max --json
 // Exits 0 only when the payment reaches SUCCESSFUL.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -30,6 +34,7 @@ const API = (args.api || process.env.API || 'http://127.0.0.1:4000/api').replace
 const ITEC_BASE = (args.itecBase || process.env.ITECPAY_BASE_URL || 'https://pay.itecpay.rw').replace(/\/$/, '');
 const PHONE = args.phone || process.env.TEST_PHONE;
 const AMOUNT = Number(args.amount || process.env.TEST_AMOUNT || 100);
+const API_KEY = args.key || process.env.API_KEY; // required in gateway mode
 const PROVIDER = args.provider; // MTN | AIRTEL (optional; auto-detected otherwise)
 const NOTE = args.note || `live-test-${Date.now()}`;
 const INTERVAL = Number(args.interval || 4000);
@@ -63,10 +68,10 @@ function detectProvider(phone) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...m) => console.log(...m);
 
-async function postJson(url, body) {
+async function postJson(url, body, extraHeaders = {}) {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...extraHeaders },
     body: JSON.stringify(body),
   });
   let data = null;
@@ -90,16 +95,24 @@ function done(ok, summary) {
 
 // ── gateway mode: drive our deployed API ─────────────────────────────────────
 async function runGateway() {
-  log(`▶ gateway mode  API=${API}  phone=${PHONE}  amount=${AMOUNT} RWF`);
+  if (!API_KEY) {
+    console.error('Missing --key (or API_KEY env): the /payments endpoints require an API key. Mint one in the console (Developers tab).');
+    process.exit(2);
+  }
+  log(`▶ gateway mode  API=${API}  phone=${PHONE}  amount=${AMOUNT} RWF  key=${String(API_KEY).split('_').slice(0, 2).join('_')}_…`);
 
-  const init = await postJson(`${API}/payments/momo`, {
-    customerName: 'Live Test',
-    customerEmail: 'live-test@smartpay.rw',
-    phone: PHONE,
-    amount: AMOUNT,
-    provider: PROVIDER,
-    note: NOTE,
-  });
+  const init = await postJson(
+    `${API}/payments/momo`,
+    {
+      customerName: 'Live Test',
+      customerEmail: 'live-test@smartpay.rw',
+      phone: PHONE,
+      amount: AMOUNT,
+      provider: PROVIDER,
+      note: NOTE,
+    },
+    { 'X-API-Key': API_KEY },
+  );
 
   if (init.httpStatus !== 201) {
     return done(false, { stage: 'request', status: 'REQUEST_REJECTED', httpStatus: init.httpStatus, body: init.data });

@@ -22,6 +22,7 @@ function buildSnippets(): { label: string; code: string; response: string }[] {
       label: 'Request a Mobile Money payment',
       code: `curl -X POST "${base}/payments/momo" \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: sk_test_your_secret_key" \\
   -d '{
   "customerName": "Alex Rivera",
   "customerEmail": "alex@example.com",
@@ -46,6 +47,7 @@ function buildSnippets(): { label: string; code: string; response: string }[] {
       label: 'Generate a hosted card link',
       code: `curl -X POST "${base}/payments/card" \\
   -H "Content-Type: application/json" \\
+  -H "X-API-Key: sk_test_your_secret_key" \\
   -d '{
   "customerName": "Alex Rivera",
   "email": "alex@example.com",
@@ -350,9 +352,10 @@ export default function DevelopersTab() {
           </div>
 
           <p className="text-xs text-slate-400">
-            Initiate a charge, then poll its status until it settles. URLs are
-            pre-filled for this environment — copy a command straight into
-            Postman or apidog.
+            Authenticate every charge with your <span className="text-indigo-300 font-mono">X-API-Key</span>
+            {' '}(SECRET key server-side; PUBLIC/publishable key for the hosted checkout link).
+            The charge is recorded under that key's merchant. URLs are pre-filled for this
+            environment — copy a command straight into Postman or apidog and swap in your key.
           </p>
 
           <div className="space-y-4">

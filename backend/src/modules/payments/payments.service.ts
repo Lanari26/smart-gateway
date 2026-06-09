@@ -51,7 +51,7 @@ function generateReference(): string {
 const isTerminal = (s: TransactionStatus) => s === TransactionStatus.PAID || s === TransactionStatus.FAILED;
 
 // ── MoMo: request a charge then auto-poll until it settles ────────────────────
-export async function createMomoCharge(input: MomoChargeInput) {
+export async function createMomoCharge(input: MomoChargeInput, merchantId: string | null) {
   const provider: MomoProvider = input.provider ?? detectProvider(input.phone);
   const reqRef = randomUUID();
 
@@ -67,6 +67,7 @@ export async function createMomoCharge(input: MomoChargeInput) {
   const tx = await prisma.transaction.create({
     data: {
       reference: generateReference(),
+      merchantId,
       customerName: input.customerName,
       customerEmail: input.customerEmail,
       amount: input.amount,
@@ -149,7 +150,7 @@ function delay(ms: number): Promise<void> {
 }
 
 // ── Card: hand back a hosted payment link ─────────────────────────────────────
-export async function createCardCharge(input: CardChargeInput) {
+export async function createCardCharge(input: CardChargeInput, merchantId: string | null) {
   const result = await requestCardPayment({ amount: input.amount, email: input.email });
   if (!result.ok || !result.link) {
     throw HttpError.badRequest('The card gateway could not generate a payment link. Try again.');
@@ -158,6 +159,7 @@ export async function createCardCharge(input: CardChargeInput) {
   const tx = await prisma.transaction.create({
     data: {
       reference: generateReference(),
+      merchantId,
       customerName: input.customerName,
       customerEmail: input.email,
       amount: input.amount,

@@ -80,9 +80,9 @@ requires a `Bearer` access token.
 | GET    | `/auth/me`                    | Current merchant                 |
 | GET/POST | `/transactions`             | List / create a charge           |
 | POST   | `/transactions/:id/refund`    | Refund a charge                  |
-| POST   | `/payments/momo`              | Request a Mobile Money charge *(public)* |
+| POST   | `/payments/momo`              | Request a Mobile Money charge *(API key)* |
 | GET    | `/payments/:reference/status` | Poll a charge (live verify) *(public)* |
-| POST   | `/payments/card`              | Generate a hosted card link *(public)* |
+| POST   | `/payments/card`              | Generate a hosted card link *(API key)* |
 | GET/POST/DELETE | `/plans`             | Billing plans                    |
 | GET/POST | `/subscriptions`            | Subscriptions (+ `/:id/cancel`)  |
 | GET/POST/DELETE | `/api-keys`          | Developer API keys               |
@@ -105,6 +105,15 @@ ITECPAY_POLL_INTERVAL_MS=4000 # status-poll cadence
 ITECPAY_POLL_MAX_ATTEMPTS=45  # give up after ~3 min (charge stays PENDING)
 ```
 
+**Auth & attribution:** `POST /payments/momo` and `/payments/card` require an
+API key sent as the `X-API-Key` header (server integrations use a **SECRET**
+`sk_…` key; the hosted checkout uses a **PUBLIC**/publishable `pk_…` key passed
+in the checkout link, e.g. `pay.lanari.rw/?screen=checkout&key=pk_…`). The key
+resolves to its merchant, and every transaction is stamped with that merchant —
+so in the console a **MERCHANT sees only its own** transactions/metrics while an
+**ADMIN sees all**. Keys are minted in the Developers tab. Status polling stays
+public (keyed only by the opaque transaction reference).
+
 **Flow:** `POST /payments/momo` requests the charge and returns a `pending`
 transaction. The backend then polls ITECpay's verify endpoint until the charge
 settles; the frontend (and any client) also polls `GET /payments/:reference/status`,
@@ -117,10 +126,10 @@ to `paid`/`failed` from either side.
 against live services (no mocks). Run it **on the server**:
 
 ```bash
-# Through our deployed API (default API=http://127.0.0.1:4000/api):
-node backend/scripts/live-test.mjs --phone 0788000000 --amount 100
+# Through our deployed API (needs an API key — mint one in the Developers tab):
+node backend/scripts/live-test.mjs --phone 0788000000 --amount 100 --key sk_test_xxx
 
-# Straight against ITECpay (validates keys + request body in isolation):
+# Straight against ITECpay (validates keys + request body in isolation, no key):
 node backend/scripts/live-test.mjs --mode direct --phone 0788000000 --amount 100
 ```
 

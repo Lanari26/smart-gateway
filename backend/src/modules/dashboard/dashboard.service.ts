@@ -1,8 +1,17 @@
-import { InvoiceStatus, SubscriptionStatus, TransactionStatus } from '@prisma/client';
+import { InvoiceStatus, Role, SubscriptionStatus, TransactionStatus } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 
-/** Aggregated metrics for the console dashboard. */
-export async function getDashboardStats() {
+interface Principal {
+  sub: string;
+  role: Role;
+}
+
+/** Aggregated metrics for the console dashboard, scoped to the merchant. */
+export async function getDashboardStats(principal: Principal) {
+  // Transaction metrics are per-merchant (admin sees all). Subscriptions and
+  // invoices aren't owner-attributed, so they stay global.
+  const txScope = principal.role === Role.ADMIN ? {} : { merchantId: principal.sub };
+
   const [
     paidAgg,
     totalCount,
@@ -14,11 +23,11 @@ export async function getDashboardStats() {
     pendingInvoices,
     outstandingAgg,
   ] = await Promise.all([
-    prisma.transaction.aggregate({ _sum: { amount: true }, where: { status: TransactionStatus.PAID } }),
-    prisma.transaction.count(),
-    prisma.transaction.count({ where: { status: TransactionStatus.PAID } }),
-    prisma.transaction.count({ where: { status: TransactionStatus.PENDING } }),
-    prisma.transaction.count({ where: { status: TransactionStatus.FAILED } }),
+    prisma.transaction.aggregate({ _sum: { amount: true }, where: { ...txScope, status: TransactionStatus.PAID } }),
+    prisma.transaction.count({ where: txScope }),
+    prisma.transaction.count({ where: { ...txScope, status: TransactionStatus.PAID } }),
+    prisma.transaction.count({ where: { ...txScope, status: TransactionStatus.PENDING } }),
+    prisma.transaction.count({ where: { ...txScope, status: TransactionStatus.FAILED } }),
     prisma.subscription.count({ where: { status: SubscriptionStatus.ACTIVE } }),
     prisma.subscription.aggregate({ _sum: { amount: true }, where: { status: SubscriptionStatus.ACTIVE } }),
     prisma.invoice.count({ where: { status: { in: [InvoiceStatus.PENDING, InvoiceStatus.OVERDUE] } } }),

@@ -47,43 +47,50 @@ export const transactionsApi = {
   list: () => apiRequest<{ transactions: Transaction[] }>("/transactions").then((r) => r.transactions),
   create: (input: { customerName: string; customerEmail: string; amount: number; method?: string; status?: Transaction["status"] }) =>
     apiRequest<{ transaction: Transaction }>("/transactions", { method: "POST", body: input }).then((r) => r.transaction),
-  // Public hosted checkout — no auth (a paying customer has no merchant session).
-  checkout: (input: { customerName: string; customerEmail: string; amount: number; method?: string }) =>
-    apiRequest<{ transaction: Transaction }>("/transactions/checkout", { method: "POST", body: input, auth: false }).then((r) => r.transaction),
   refund: (id: string) =>
     apiRequest<{ transaction: Transaction }>(`/transactions/${id}/refund`, { method: "POST" }).then((r) => r.transaction),
 };
 
-// ── Payments (hosted checkout — ITECpay gateway, no auth) ──────────────────
+// ── Payments (hosted checkout — ITECpay gateway) ───────────────────────────
+// Charge creation is authenticated by an API key (sent as X-API-Key), not the
+// merchant JWT: server integrations use their SECRET key, the hosted checkout
+// uses a PUBLIC/publishable key. Every charge is attributed to the key's owner.
+const apiKeyHeader = (apiKey: string) => ({ "X-API-Key": apiKey });
+
 export const paymentsApi = {
   // Initiate a Mobile Money charge. Returns a PENDING transaction; the payer
   // approves on their handset. `accepted: false` means the gateway rejected it.
-  momo: (input: {
-    customerName: string;
-    customerEmail: string;
-    phone: string;
-    amount: number;
-    provider?: "MTN" | "AIRTEL";
-    note?: string;
-    message?: string;
-  }) =>
+  momo: (
+    input: {
+      customerName: string;
+      customerEmail: string;
+      phone: string;
+      amount: number;
+      provider?: "MTN" | "AIRTEL";
+      note?: string;
+      message?: string;
+    },
+    apiKey: string,
+  ) =>
     apiRequest<{ transaction: Transaction; accepted: boolean; message?: string }>("/payments/momo", {
       method: "POST",
       body: input,
       auth: false,
+      headers: apiKeyHeader(apiKey),
     }),
   // Poll a charge — performs a live verify against the gateway and returns the
-  // up-to-date transaction (status: pending | paid | failed).
+  // up-to-date transaction (status: pending | paid | failed). Public by reference.
   status: (reference: string) =>
     apiRequest<{ transaction: Transaction }>(`/payments/${reference}/status`, { auth: false }).then(
       (r) => r.transaction,
     ),
   // Generate a hosted card-payment link.
-  card: (input: { customerName: string; email: string; amount: number }) =>
+  card: (input: { customerName: string; email: string; amount: number }, apiKey: string) =>
     apiRequest<{ transaction: Transaction; link: string; validUntil?: string }>("/payments/card", {
       method: "POST",
       body: input,
       auth: false,
+      headers: apiKeyHeader(apiKey),
     }),
 };
 

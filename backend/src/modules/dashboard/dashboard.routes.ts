@@ -9,7 +9,7 @@ dashboardRouter.use(authenticate);
 
 dashboardRouter.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    res.json({ stats: await service.getDashboardStats() });
+  asyncHandler(async (req, res) => {
+    res.json({ stats: await service.getDashboardStats(req.user!) });
   }),
 );

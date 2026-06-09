@@ -1,8 +1,14 @@
 import { randomBytes } from 'node:crypto';
-import { ApiKeyType, type ApiKey } from '@prisma/client';
+import { ApiKeyType, Role, type ApiKey } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { formatDate } from '../../lib/format.js';
+import { HttpError } from '../../lib/http-error.js';
 import type { CreateApiKeyInput } from './apikeys.schemas.js';
+
+interface Principal {
+  sub: string;
+  role: Role;
+}
 
 function toDTO(k: ApiKey) {
   return {
@@ -21,8 +27,11 @@ function generateToken(type: ApiKeyType, mode: 'live' | 'test'): string {
   return `${prefix}_${mode}_${body}`;
 }
 
-export async function listApiKeys() {
-  const rows = await prisma.apiKey.findMany({ orderBy: { createdAt: 'desc' } });
+export async function listApiKeys(principal: Principal) {
+  const rows = await prisma.apiKey.findMany({
+    where: principal.role === Role.ADMIN ? {} : { merchantId: principal.sub },
+    orderBy: { createdAt: 'desc' },
+  });
   return rows.map(toDTO);
 }
 
@@ -39,6 +48,11 @@ export async function createApiKey(input: CreateApiKeyInput, merchantId?: string
   return toDTO(key);
 }
 
-export async function deleteApiKey(id: string) {
+export async function deleteApiKey(id: string, principal: Principal) {
+  const key = await prisma.apiKey.findUnique({ where: { id } });
+  if (!key) throw HttpError.notFound('API key not found');
+  if (principal.role !== Role.ADMIN && key.merchantId !== principal.sub) {
+    throw HttpError.notFound('API key not found');
+  }
   await prisma.apiKey.delete({ where: { id } });
 }
