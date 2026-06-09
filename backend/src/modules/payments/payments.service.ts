@@ -91,27 +91,37 @@ export async function createMomoCharge(input: MomoChargeInput, merchantId: strin
   const provider: MomoProvider = input.provider ?? detectProvider(input.phone);
   const reqRef = randomUUID();
 
-  // Provider takes its cut off the gross; only the remainder is distributable.
-  const result = await requestMomoPayment({
-    amount: input.amount,
-    phone: input.phone,
-    provider,
-    reqRef,
-    note: input.note,
-    message: input.message,
-  });
-  const accepted = result.ok;
+  // Send the request-to-pay. IMPORTANT: ITECpay's /api2/pay response body is
+  // NOT a reliable accept/reject signal — it can return an error body
+  // ("Payment request failed", status 400) yet still push the USSD prompt to
+  // the payer. So we only hard-fail when we genuinely couldn't reach the
+  // gateway; otherwise we go PENDING and let /api2/verify decide the real
+  // outcome once the payer approves or rejects on their handset.
+  let result: Awaited<ReturnType<typeof requestMomoPayment>> | null = null;
+  try {
+    result = await requestMomoPayment({
+      amount: input.amount,
+      phone: input.phone,
+      provider,
+      reqRef,
+      note: input.note,
+      message: input.message,
+    });
+  } catch (err) {
+    console.error('[payments] /api2/pay request errored:', err);
+  }
+  const reachable = result !== null;
+  console.info(`[payments] /api2/pay raw for ${reqRef}:`, JSON.stringify(result?.raw ?? null));
 
   const feePercent = env.ITECPAY_FEE_PERCENT;
   const netAmount = Math.round(input.amount * (1 - feePercent / 100));
-  // The split plan; only relevant once the charge is paid. If the gateway
-  // rejected the request outright there will never be a transfer, so mark the
-  // lines SKIPPED rather than leaving them looking PENDING.
+  // The split plan; only acted on once the charge is paid. Marked SKIPPED only
+  // when we couldn't reach the gateway (so there will never be a transfer).
   const recipients: RecipientRow[] = (input.recipients ?? []).map((r) => ({
     phone: r.phone,
     percent: r.percent,
     amount: Math.floor((netAmount * r.percent) / 100),
-    status: accepted ? 'PENDING' : 'SKIPPED',
+    status: reachable ? 'PENDING' : 'SKIPPED',
   }));
 
   const tx = await prisma.transaction.create({
@@ -125,25 +135,24 @@ export async function createMomoCharge(input: MomoChargeInput, merchantId: strin
       phone: input.phone,
       provider,
       providerRef: reqRef,
-      providerTxnId: result.transId,
+      providerTxnId: result?.transId,
       feePercent,
       netAmount,
       recipients: recipients as unknown as Prisma.InputJsonValue,
-      // PENDING transfer means "disburse once paid"; NONE means no split (or the
-      // charge never got off the ground).
-      transferStatus: accepted && recipients.length ? 'PENDING' : 'NONE',
-      // Accepted requests sit PENDING until the payer approves; a rejected
-      // request is FAILED immediately so the UI stops polling.
-      status: accepted ? TransactionStatus.PENDING : TransactionStatus.FAILED,
+      // PENDING transfer means "disburse once paid"; NONE means no split (or we
+      // never reached the gateway).
+      transferStatus: reachable && recipients.length ? 'PENDING' : 'NONE',
+      // PENDING until the payer approves and /api2/verify confirms; only a
+      // hard connectivity failure is FAILED up front.
+      status: reachable ? TransactionStatus.PENDING : TransactionStatus.FAILED,
     },
   });
 
-  if (!accepted) {
-    console.warn(`[payments] gateway rejected ${tx.reference}:`, JSON.stringify(result.raw));
+  if (!reachable) {
     return {
       transaction: toDTO(tx),
       accepted: false,
-      message: result.message ? `Gateway: ${result.message}` : 'The gateway rejected the payment request.',
+      message: 'Could not reach the payment gateway. Please try again.',
     };
   }
 
